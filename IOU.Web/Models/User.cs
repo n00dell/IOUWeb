@@ -15,7 +15,9 @@ namespace IOU.Web.Models
         [Required]
         public UserType UserType { get; set; }
 
-        
+        public virtual Student Student { get; set; }
+        public virtual Lender Lender { get; set; }
+        public virtual Guardian Guardian { get; set; }
     }
     public enum UserType
     {

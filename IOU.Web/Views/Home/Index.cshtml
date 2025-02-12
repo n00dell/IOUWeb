@@ -1,8 +1,98 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Welcome to IOU - Student Debt Management";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4 mb-3">Welcome to IOU</h1>
+        <p class="lead">Choose your role to get started with our student debt management platform</p>
+    </div>
+
+    <div class="row justify-content-center g-4">
+        <!-- Student Card -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-graduate fa-3x mb-3 text-primary"></i>
+                    <h3 class="card-title">Student</h3>
+                    <p class="card-text">
+                        Access student loans, manage your debt, and track your repayment progress.
+                    </p>
+                    <a asp-controller="Account" asp-action="Register" asp-route-userType="Student"
+                       class="btn btn-primary mt-3">Register as Student</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lender Card -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-landmark fa-3x mb-3 text-success"></i>
+                    <h3 class="card-title">Lender</h3>
+                    <p class="card-text">
+                        Provide student loans, manage borrowers, and track loan portfolios.
+                    </p>
+                    <a asp-controller="Account" asp-action="Register" asp-route-userType="Lender"
+                       class="btn btn-success mt-3">Register as Lender</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guardian Card -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-shield-alt fa-3x mb-3 text-info"></i>
+                    <h3 class="card-title">Guardian</h3>
+                    <p class="card-text">
+                        Support and monitor your student's loan journey as a guardian.
+                    </p>
+                    <a asp-controller="Account" asp-action="Register" asp-route-userType="Guardian"
+                       class="btn btn-info mt-3">Register as Guardian</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-5">
+        <p>Already have an account? <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">Login here</a></p>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mt-5 pt-5 border-top">
+        <div class="col-12 text-center mb-4">
+            <h2>Why Choose IOU?</h2>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <i class="fas fa-lock fa-2x mb-3 text-primary"></i>
+            <h4>Secure Platform</h4>
+            <p>Your financial data is protected with industry-standard security measures.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <i class="fas fa-chart-line fa-2x mb-3 text-primary"></i>
+            <h4>Easy Management</h4>
+            <p>Intuitive dashboard to track loans, payments, and progress.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <i class="fas fa-hands-helping fa-2x mb-3 text-primary"></i>
+            <h4>Dedicated Support</h4>
+            <p>Get help when you need it with our responsive support team.</p>
+        </div>
+    </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .card {
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .fa-3x {
+            margin: 20px 0;
+        }
+    </style>
+}

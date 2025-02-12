@@ -1,4 +1,5 @@
-﻿using IOU.Web.Models;
+﻿using IOU.Web.Data;
+using IOU.Web.Models;
 using IOU.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,47 +10,127 @@ namespace IOU.Web.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IOUWebContext _context;
 
-        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IOUWebContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _context = context;
         }
 
         [HttpGet]
-        public IActionResult Register()
+        public IActionResult Register(UserType userType)
         {
-            return View();
+            switch (userType){
+                
+                case UserType.Lender:
+                    return View("LenderRegister", new LenderRegisterViewModel());
+                case UserType.Student:
+                    return View("StudentRegister", new StudentRegisterViewModel());
+                case UserType.Guardian:
+                    return View("GuardianRegister", new GuardianRegisterViewModel());
+                default:
+                    return RedirectToAction("Index", "Home");
+                }
+           
         }
 
         [HttpPost]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> RegisterStudent(StudentRegisterViewModel model)
         {
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    UserName = model.Email,
-                    Email = model.Email,
-                    FullName = model.FullName,
-                    PhoneNumber = model.PhoneNumber,
-                    CreatedDate = DateTime.Now,
-                    UserType = model.UserType,
-                    IsActive = true
-                };
-                var result = await _userManager.CreateAsync(user, model.Password);
-                if (result.Succeeded)
-                {
-                    await _signInManager.SignInAsync(user, isPersistent: false);
-                    return RedirectToAction("Index", "Home");
+                    var user = new ApplicationUser
+                    {
+                        UserName = model.Email,
+                        Email = model.Email,
+                        FullName = model.FullName,
+                        UserType = UserType.Student,
+                        IsActive = true,
+                        PhoneNumber = model.PhoneNumber
+                    };
+                    var result = await _userManager.CreateAsync(user, model.Password);
+                    if (result.Succeeded)
+                    {
+                        var student = new Student
+                        {
+                            UserId = user.Id,
+                            StudentId = model.StudentId,
+                            ExpectedGraduationDate = model.ExpectedGraduationDate,
+                            University = model.University
+                        };
+                        _context.Student.Add(student);
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        await _signInManager.SignInAsync(user, isPersistent: false);
+                        return RedirectToAction("Dashboard", "Student");
+                    }
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
                 }
-                foreach (var error in result.Errors)
+                catch (Exception)
                 {
-                    ModelState.AddModelError(string.Empty, error.Description);
+                    transaction.Rollback();
+                    throw;
+                } 
+            }
+            return View(model);
+        }
+        [HttpPost]
+        public async Task<IActionResult> RegisterLender(LenderRegisterViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var user = new ApplicationUser
+                    {
+                        UserName = model.Email,
+                        Email = model.Email,
+                        FullName = model.FullName,
+                        UserType = UserType.Student,
+                        IsActive = true,
+                        PhoneNumber = model.PhoneNumber
+                    };
+                    var result = await _userManager.CreateAsync(user, model.Password);
+                    if (result.Succeeded)
+                    {
+                        var lender = new Lender
+                        {
+                            UserId = user.Id,
+                            CompanyName = model.CompanyName,
+                            BusinessRegistrationNumber = model.BusinessRegistrationNumber
+                        };
+                        _context.Lender.Add(lender);
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        await _signInManager.SignInAsync(user, isPersistent: false);
+                        return RedirectToAction("Dashboard", "Lender");
+                    }
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+                }
+                catch (Exception)
+                {
+                    transaction.Rollback();
+                    throw;
                 }
             }
             return View(model);
         }
+
+
 
         [HttpGet]
         public IActionResult Login()
@@ -69,7 +150,15 @@ namespace IOU.Web.Controllers
                 ).Result;
                 if (result.Succeeded)
                 {
-                    return RedirectToAction("Index", "Home");
+                    var user = await _userManager.FindByEmailAsync(model.Email);
+                    return user.UserType switch
+                    {
+                        UserType.Admin => RedirectToAction("Dashboard", "Admin"),
+                        UserType.Lender => RedirectToAction("Dashboard", "Lender"),
+                        UserType.Student => RedirectToAction("Dashboard", "Student"),
+                        UserType.Guardian => RedirectToAction("Index", "Guardian"),
+                        _ => RedirectToAction("Index", "Home")
+                    };
                 }
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             }

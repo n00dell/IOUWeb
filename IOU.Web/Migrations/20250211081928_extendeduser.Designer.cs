@@ -4,6 +4,7 @@ using IOU.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOU.Web.Migrations
 {
     [DbContext(typeof(IOUWebContext))]
-    partial class IOUWebContextModelSnapshot : ModelSnapshot
+    [Migration("20250211081928_extendeduser")]
+    partial class extendeduser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -125,7 +128,12 @@ namespace IOU.Web.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("UserId1")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("UserId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("Guardian");
                 });
@@ -143,7 +151,13 @@ namespace IOU.Web.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("UserId1")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("UserId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("Lender");
                 });
@@ -153,8 +167,8 @@ namespace IOU.Web.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime>("ExpectedGraduationDate")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("ExpectedGraduationDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("StudentId")
                         .IsRequired()
@@ -164,7 +178,13 @@ namespace IOU.Web.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("UserId1")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("UserId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("Student");
                 });
@@ -331,10 +351,8 @@ namespace IOU.Web.Migrations
             modelBuilder.Entity("IOU.Web.Models.Guardian", b =>
                 {
                     b.HasOne("IOU.Web.Models.ApplicationUser", "User")
-                        .WithOne("Guardian")
-                        .HasForeignKey("IOU.Web.Models.Guardian", "UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .WithMany()
+                        .HasForeignKey("UserId1");
 
                     b.Navigation("User");
                 });
@@ -342,9 +360,9 @@ namespace IOU.Web.Migrations
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
                 {
                     b.HasOne("IOU.Web.Models.ApplicationUser", "User")
-                        .WithOne("Lender")
-                        .HasForeignKey("IOU.Web.Models.Lender", "UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .WithMany()
+                        .HasForeignKey("UserId1")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -353,9 +371,9 @@ namespace IOU.Web.Migrations
             modelBuilder.Entity("IOU.Web.Models.Student", b =>
                 {
                     b.HasOne("IOU.Web.Models.ApplicationUser", "User")
-                        .WithOne("Student")
-                        .HasForeignKey("IOU.Web.Models.Student", "UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .WithMany()
+                        .HasForeignKey("UserId1")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -428,18 +446,6 @@ namespace IOU.Web.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("IOU.Web.Models.ApplicationUser", b =>
-                {
-                    b.Navigation("Guardian")
-                        .IsRequired();
-
-                    b.Navigation("Lender")
-                        .IsRequired();
-
-                    b.Navigation("Student")
                         .IsRequired();
                 });
 

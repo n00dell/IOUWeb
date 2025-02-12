@@ -4,13 +4,14 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>585fc180-32b2-4c17-830a-b6f78b72ba6b</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Areas\Admin\Controllers\" />
-    <Folder Include="Areas\Admin\Data\" />
-    <Folder Include="Areas\Admin\Models\" />
-    <Folder Include="Areas\Admin\Views\" />
+    <Folder Include="Admin\Admin\Controllers\" />
+    <Folder Include="Admin\Admin\Data\" />
+    <Folder Include="Admin\Admin\Models\" />
+    <Folder Include="Admin\Admin\Views\" />
     <Folder Include="Migrations\" />
   </ItemGroup>
 

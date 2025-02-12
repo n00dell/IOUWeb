@@ -15,7 +15,23 @@ namespace IOU.Web.Controllers
 
         public IActionResult Index()
         {
+            if (User.Identity.IsAuthenticated)
+            {
+                var userTypeClaim = User.Claims.FirstOrDefault(c => c.Type == "UserType");
+                if (userTypeClaim != null)
+                {
+                    return userTypeClaim.Value switch
+                    {
+                        "Student" => RedirectToAction("Index", "StudentDashboard"),
+                        "Lender" => RedirectToAction("Index", "LenderDashboard"),
+                        "Guardian" => RedirectToAction("Index", "GuardianDashboard"),
+                        "Admin" => RedirectToAction("Index", "AdminDashboard"),
+                        _ => View()
+                    };
+                }
+            }
             return View();
+        
         }
 
         public IActionResult Privacy()

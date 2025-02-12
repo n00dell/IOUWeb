@@ -1,0 +1,83 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - IOU</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="@GetSidebarThemeClass()">
+            <div class="sidebar-header">
+                <h3>IOU</h3>
+            </div>
+
+            <ul class="list-unstyled components">
+                @if (User.IsInRole("Student"))
+                {
+                    <partial name="_StudentMenu" />
+                }
+                else if (User.IsInRole("Lender"))
+                {
+                    <partial name="_LenderMenu" />
+                }
+                else if (User.IsInRole("Guardian"))
+                {
+                    <partial name="_GuardianMenu" />
+                }
+            </ul>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content">
+            <nav class="navbar navbar-expand-lg @GetNavbarThemeClass()">
+                <div class="container-fluid">
+                    <button type="button" id="sidebarCollapse" class="btn @GetButtonThemeClass()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="ml-auto">
+                        <partial name="_LoginPartial" />
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container-fluid">
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+
+@functions {
+    public string GetSidebarThemeClass()
+    {
+        return User.IsInRole("Student") ? "bg-primary" :
+               User.IsInRole("Lender") ? "bg-success" :
+               User.IsInRole("Guardian") ? "bg-info" : "bg-dark";
+    }
+
+    public string GetNavbarThemeClass()
+    {
+        return User.IsInRole("Student") ? "navbar-primary" :
+               User.IsInRole("Lender") ? "navbar-success" :
+               User.IsInRole("Guardian") ? "navbar-info" : "navbar-dark";
+    }
+
+    public string GetButtonThemeClass()
+    {
+        return User.IsInRole("Student") ? "btn-primary" :
+               User.IsInRole("Lender") ? "btn-success" :
+               User.IsInRole("Guardian") ? "btn-info" : "btn-dark";
+    }
+}
