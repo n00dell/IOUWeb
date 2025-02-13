@@ -1,8 +1,9 @@
 ﻿using IOU.Web.Models;
+using IOU.Web.Services.Interfaces;
 
 namespace IOU.Web.Services
 {
-    public class DebtCalculationService
+    public class DebtCalculationService : IDebtCalculationService
     {
         public decimal CalculateInterest(Debt debt, DateTime calculationDate)
         {

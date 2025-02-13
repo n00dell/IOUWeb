@@ -1,23 +1,26 @@
 ﻿using IOU.Web.Data;
 using IOU.Web.Models;
 using IOU.Web.Models.ViewModels;
+using IOU.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
+using IOU.Web.Services.Interfaces;
 
 namespace IOU.Web.Controllers
 {
     public class LenderController : Controller
     {
         private readonly IOUWebContext _context;
+        public readonly IDebtCalculationService _calculationService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public LenderController(IOUWebContext context, UserManager<ApplicationUser> userManager)
+        public LenderController(IOUWebContext context, UserManager<ApplicationUser> userManager, IDebtCalculationService calculationService)
         {
             _context = context;
             _userManager = userManager;
+            _calculationService = calculationService;
         }
 
         [Authorize(Roles = "Lender")]
@@ -47,7 +50,6 @@ namespace IOU.Web.Controllers
             {
                 try
                 {
-                    // Get current lender
                     var currentUser = await _userManager.GetUserAsync(User);
                     if (currentUser == null)
                     {
@@ -63,7 +65,6 @@ namespace IOU.Web.Controllers
                         return View(model);
                     }
 
-                    // Find student
                     var studentUser = await _userManager.FindByEmailAsync(model.StudentEmail);
                     if (studentUser == null)
                     {
@@ -79,48 +80,55 @@ namespace IOU.Web.Controllers
                         return View(model);
                     }
 
-                    // Validate dates
-                    if (model.DueDate <= DateTime.Today)
-                    {
-                        ModelState.AddModelError("DueDate", "Due date must be in the future.");
-                        return View(model);
-                    }
-
                     var debt = new Debt
                     {
                         Id = Guid.NewGuid().ToString(),
-                        LenderId = lender.UserId, // Using UserId as it's the primary key
-                        StudentId = student.UserId, // Using UserId as it's the primary key
+                        LenderId = lender.UserId,
+                        StudentId = student.UserId,
+                        DebtType = model.DebtType,
                         PrincipalAmount = model.PrincipalAmount,
                         CurrentBalance = model.PrincipalAmount,
                         InterestRate = model.InterestRate,
+                        InterestType = model.InterestType,
+                        CalculationPeriod = model.CalculationPeriod,
                         DateIssued = DateTime.UtcNow,
                         DueDate = model.DueDate,
                         CreatedAt = DateTime.UtcNow,
+                        LastInterestCalculationDate = DateTime.UtcNow,
                         LateFeeAmount = model.LateFeeAmount,
                         GracePeriodDays = model.GracePeriodDays,
                         Purpose = model.Purpose,
                         Status = DebtStatus.Pending,
-                        AccumulatedInterest = 0
+                        AccumulatedInterest = 0,
+                        AccumulatedLateFees = 0
                     };
 
                     _context.Debt.Add(debt);
                     await _context.SaveChangesAsync();
+
+                    //// Create notification for student
+                    //var notification = new Notification
+                    //{
+                    //    UserId = student.UserId,
+                    //    Title = "New Debt Created",
+                    //    Message = $"A new {model.DebtType} debt of {model.PrincipalAmount:C} has been created.",
+                    //    CreatedAt = DateTime.UtcNow,
+                    //    IsRead = false
+                    //};
+
+                    //_context.Notifications.Add(notification);
+                    //await _context.SaveChangesAsync();
 
                     TempData["SuccessMessage"] = "Debt created successfully.";
                     return RedirectToAction(nameof(Dashboard));
                 }
                 catch (Exception ex)
                 {
-                    // Log the exception details
-                    Console.WriteLine($"Error creating debt: {ex.Message}");
-                    Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                    ModelState.AddModelError("", $"Error creating debt: {ex.Message}");
+                    ModelState.AddModelError("", "Error creating debt: " + ex.Message);
                 }
             }
-
-            // If we got this far, something failed, redisplay form
             return View(model);
         }
     }
-}
+  }
+

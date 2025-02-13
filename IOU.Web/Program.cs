@@ -1,5 +1,7 @@
 using IOU.Web.Data;
 using IOU.Web.Models;
+using IOU.Web.Services.Interfaces;
+using IOU.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,7 +43,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LogoutPath = "/Account/Logout";
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
-
+builder.Services.AddScoped<IDebtCalculationService, DebtCalculationService>();
 var app = builder.Build();
 
 // Seed Roles

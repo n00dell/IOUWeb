@@ -16,49 +16,97 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="StudentEmail"></label>
+                            <label asp-for="StudentEmail" class="control-label"></label>
                             <input asp-for="StudentEmail" class="form-control" />
                             <span asp-validation-for="StudentEmail" class="text-danger"></span>
                         </div>
 
                         <div class="form-group mb-3">
-                            <label asp-for="PrincipalAmount"></label>
+                            <label asp-for="DebtType" class="control-label">Debt Type</label>
+                            <select asp-for="DebtType" asp-items="Html.GetEnumSelectList<DebtType>()" class="form-control">
+                                <option value="">Select Debt Type</option>
+                            </select>
+                            <span asp-validation-for="DebtType" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="PrincipalAmount" class="control-label"></label>
                             <input asp-for="PrincipalAmount" class="form-control" />
                             <span asp-validation-for="PrincipalAmount" class="text-danger"></span>
                         </div>
 
                         <div class="form-group mb-3">
-                            <label asp-for="InterestRate"></label>
-                            <input asp-for="InterestRate" class="form-control" />
-                            <span asp-validation-for="InterestRate" class="text-danger"></span>
+                            <label asp-for="InterestType" class="control-label">Interest Type</label>
+                            <select asp-for="InterestType" asp-items="Html.GetEnumSelectList<InterestType>()" class="form-control">
+                                <option value="">Select Interest Type</option>
+                            </select>
+                            <span asp-validation-for="InterestType" class="text-danger"></span>
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="DueDate"></label>
+                            <label asp-for="InterestRate" class="control-label"></label>
+                            <input asp-for="InterestRate" class="form-control" />
+                            <span asp-validation-for="InterestRate" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="CalculationPeriod" class="control-label">Calculation Period</label>
+                            <select asp-for="CalculationPeriod" asp-items="Html.GetEnumSelectList<InterestCalculationPeriod>()" class="form-control">
+                                <option value="">Select Calculation Period</option>
+                            </select>
+                            <span asp-validation-for="CalculationPeriod" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="DueDate" class="control-label"></label>
                             <input asp-for="DueDate" class="form-control" type="date" />
                             <span asp-validation-for="DueDate" class="text-danger"></span>
                         </div>
 
                         <div class="form-group mb-3">
-                            <label asp-for="LateFeeAmount"></label>
+                            <label asp-for="LateFeeAmount" class="control-label"></label>
                             <input asp-for="LateFeeAmount" class="form-control" />
                             <span asp-validation-for="LateFeeAmount" class="text-danger"></span>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label asp-for="GracePeriodDays"></label>
-                            <input asp-for="GracePeriodDays" class="form-control" />
-                            <span asp-validation-for="GracePeriodDays" class="text-danger"></span>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-group mb-3">
-                    <label asp-for="Purpose"></label>
-                    <textarea asp-for="Purpose" class="form-control"></textarea>
-                    <span asp-validation-for="Purpose" class="text-danger"></span>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group mb-3">
+                            <label asp-for="GracePeriodDays" class="control-label"></label>
+                            <input asp-for="GracePeriodDays" class="form-control" />
+                            <span asp-validation-for="GracePeriodDays" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Purpose" class="control-label"></label>
+                            <textarea asp-for="Purpose" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Purpose" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loan Summary Section -->
+                <div class="card mt-4 mb-4">
+                    <div class="card-header">
+                        <h5>Loan Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p><strong>Monthly Payment:</strong> <span id="monthlyPayment">Ksh0.00</span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Total Interest:</strong> <span id="totalInterest">Ksh0.00</span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Total Amount:</strong> <span id="totalAmount">Ksh0.00</span></p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -74,4 +122,47 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        $(document).ready(function() {
+            function calculateLoanDetails() {
+                var principal = parseFloat($('#PrincipalAmount').val()) || 0;
+                var interestRate = parseFloat($('#InterestRate').val()) || 0;
+                var interestType = $('#InterestType').val();
+                var calculationPeriod = $('#CalculationPeriod').val();
+                var dueDate = new Date($('#DueDate').val());
+                var today = new Date();
+
+                if (principal > 0 && interestRate > 0 && dueDate > today) {
+                    var months = (dueDate.getFullYear() - today.getFullYear()) * 12 +
+                        (dueDate.getMonth() - today.getMonth());
+
+                    var totalInterest = 0;
+                    var monthlyPayment = 0;
+
+                    if (interestType === '@InterestType.Simple.ToString()') {
+                        totalInterest = (principal * (interestRate/100) * (months/12));
+                        monthlyPayment = (principal + totalInterest) / months;
+                    } else {
+                        // Compound interest calculation
+                        var n = calculationPeriod === '@InterestCalculationPeriod.Monthly.ToString()' ? 12 :
+                            calculationPeriod === '@InterestCalculationPeriod.Quarterly.ToString()' ? 4 : 1;
+
+                        var r = interestRate / (100 * n);
+                        var t = months / 12;
+                        var amount = principal * Math.pow(1 + r, n * t);
+                        totalInterest = amount - principal;
+                        monthlyPayment = amount / months;
+                    }
+
+                    $('#monthlyPayment').text('$' + monthlyPayment.toFixed(2));
+                    $('#totalInterest').text('$' + totalInterest.toFixed(2));
+                    $('#totalAmount').text('$' + (principal + totalInterest).toFixed(2));
+                }
+            }
+
+            // Calculate on input change
+            $('#PrincipalAmount, #InterestRate, #InterestType, #CalculationPeriod, #DueDate')
+                .on('input change', calculateLoanDetails);
+        });
+    </script>
 }
