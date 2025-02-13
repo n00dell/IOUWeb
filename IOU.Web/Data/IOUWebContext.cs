@@ -19,6 +19,18 @@ namespace IOU.Web.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Debt>(entity =>
+            {
+                entity.HasOne(d => d.Student)
+                    .WithMany(s => s.Debts)
+                    .HasForeignKey(d => d.StudentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(d => d.Lender)
+                    .WithMany(l => l.IssuedDebts)
+                    .HasForeignKey(d => d.LenderId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
             modelBuilder.Entity<Student>()
         .HasOne(s => s.User)
         .WithOne(u => u.Student)

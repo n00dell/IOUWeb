@@ -4,6 +4,7 @@ using IOU.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOU.Web.Migrations
 {
     [DbContext(typeof(IOUWebContext))]
-    partial class IOUWebContextModelSnapshot : ModelSnapshot
+    [Migration("20250212085950_idk")]
+    partial class idk
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,53 +108,17 @@ namespace IOU.Web.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<decimal>("AccumulatedInterest")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("CurrentBalance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("DateIssued")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DueDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("GracePeriodDays")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("InterestRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("LateFeeAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("LenderId")
-                        .IsRequired()
+                    b.Property<string>("LenderUserId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<decimal>("PrincipalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Purpose")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("StudentId")
-                        .IsRequired()
+                    b.Property<string>("StudentUserId")
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LenderId");
+                    b.HasIndex("LenderUserId");
 
-                    b.HasIndex("StudentId");
+                    b.HasIndex("StudentUserId");
 
                     b.ToTable("Debt");
                 });
@@ -355,21 +322,13 @@ namespace IOU.Web.Migrations
 
             modelBuilder.Entity("IOU.Web.Models.Debt", b =>
                 {
-                    b.HasOne("IOU.Web.Models.Lender", "Lender")
+                    b.HasOne("IOU.Web.Models.Lender", null)
                         .WithMany("IssuedDebts")
-                        .HasForeignKey("LenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("LenderUserId");
 
-                    b.HasOne("IOU.Web.Models.Student", "Student")
+                    b.HasOne("IOU.Web.Models.Student", null)
                         .WithMany("Debts")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Lender");
-
-                    b.Navigation("Student");
+                        .HasForeignKey("StudentUserId");
                 });
 
             modelBuilder.Entity("IOU.Web.Models.Guardian", b =>
