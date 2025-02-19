@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IOU.Web.Services.Interfaces;
 using AspNetCoreGeneratedDocument;
+using IOU.Web.Services;
 
 namespace IOU.Web.Controllers
 {
@@ -17,12 +18,14 @@ namespace IOU.Web.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
         private readonly ILogger<LenderController> _logger;
+        private readonly IDebtService _debtService;
 
         public LenderController(
             IOUWebContext context,
             UserManager<ApplicationUser> userManager,
             IDebtCalculationService calculationService,
             INotificationService notificationService,
+            IDebtService debtService,
             ILogger<LenderController> logger)
         {
             _context = context;
@@ -30,12 +33,38 @@ namespace IOU.Web.Controllers
             _calculationService = calculationService;
             _notificationService = notificationService;
             _logger = logger;
+            _debtService = debtService;
         }
+        
         [HttpGet]
         [Authorize(Roles = "Lender")]
         public async Task<IActionResult> Dashboard()
         {
-            return View();
+            var currentUser = await _userManager.GetUserAsync(User);
+            var lender = await _context.Lender
+                .FirstOrDefaultAsync(l => l.UserId == currentUser.Id);
+
+            if (lender == null)
+                return RedirectToAction("Error", "Home");
+
+            // Get debts with related student and user data
+            var debts = await _context.Debt
+                .Include(d => d.Student)
+                    .ThenInclude(s => s.User)
+                .Where(d => d.LenderId == lender.UserId)
+                .ToListAsync();
+
+            // Update calculations for each debt
+            foreach (var debt in debts)
+                await _debtService.UpdateDebtCalculations(debt.Id);
+
+            var viewModel = new LenderDashboardViewModel
+            {
+                TotalActiveDebts = debts.Sum(d => d.CurrentBalance),
+                ActiveDebts = debts.OrderByDescending(d => d.DueDate).ToList()
+            };
+
+            return View(viewModel);
         }
         [HttpGet]
         [Authorize(Roles = "Lender")]

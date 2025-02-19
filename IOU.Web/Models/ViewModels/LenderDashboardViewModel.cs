@@ -25,5 +25,8 @@
         // Charts Data
         public Dictionary<string, decimal> MonthlyLoanDistribution { get; set; }
         public Dictionary<string, decimal> RepaymentTrends { get; set; }
+
+        public List<Debt> ActiveDebts { get; set; }
+
     }
 }

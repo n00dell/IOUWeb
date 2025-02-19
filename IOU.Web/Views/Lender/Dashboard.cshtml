@@ -3,4 +3,132 @@
     Layout = "_Layout";
     ViewData["Title"] = "Lender Dashboard";
 }
-<h1>Lender Dashboard</h1>
+
+<div class="lender-dashboard">
+    <div class="row lender-dashboard__row">
+        <!-- Left Column -->
+        <div class="col-md-4 mb-4">
+            <!-- Summary Card -->
+            <div class="card lender-summary mb-4">
+                <div class="card-body">
+                    <h1 class="lender-summary__title h3">Lender Dashboard</h1>
+                    <div class="lender-summary__total">
+                        <span class="lender-summary__label">Total Outstanding</span>
+                        <span class="lender-summary__amount">@Model.TotalActiveDebts.ToString("C")</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="card lender-card mb-4">
+                <div class="lender-card__header card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="lender-actions">
+                        <a href="@Url.Action("CreateDebt", "Lender")" class="lender-actions__item">
+                            <i class="fas fa-plus-circle lender-actions__icon"></i>
+                            <span>Create New Debt</span>
+                        </a>
+                        <a href="@Url.Action("Payments", "Lender")" class="lender-actions__item">
+                            <i class="fas fa-money-bill-wave lender-actions__icon"></i>
+                            <span>View Payments</span>
+                        </a>
+                        <a href="@Url.Action("Notifications", "Lender")" class="lender-actions__item">
+                            <i class="fas fa-bell lender-actions__icon"></i>
+                            <span>View Notifications</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activities Card -->
+            <div class="card lender-card">
+                <div class="lender-card__header card-header">
+                    <h5 class="mb-0">Recent Activities</h5>
+                </div>
+                <div class="card-body">
+                    <div class="lender-activities">
+                        <div class="lender-activities__item">
+                            <i class="fas fa-check-circle text-success lender-activities__icon"></i>
+                            <div class="lender-activities__content">
+                                <p class="lender-activities__text">Payment received from John Doe</p>
+                                <small class="lender-activities__time text-muted">Today, 2:30 PM</small>
+                            </div>
+                        </div>
+                        <div class="lender-activities__item">
+                            <i class="fas fa-file-invoice text-primary lender-activities__icon"></i>
+                            <div class="lender-activities__content">
+                                <p class="lender-activities__text">New debt created for Jane Smith</p>
+                                <small class="lender-activities__time text-muted">Yesterday, 11:20 AM</small>
+                            </div>
+                        </div>
+                        <div class="lender-activities__item">
+                            <i class="fas fa-exclamation-circle text-warning lender-activities__icon"></i>
+                            <div class="lender-activities__content">
+                                <p class="lender-activities__text">Payment overdue notification sent</p>
+                                <small class="lender-activities__time text-muted">2 days ago</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-md-8">
+            <div class="lender-debts">
+                <h4 class="lender-debts__title mb-4">Active Debts</h4>
+                @if (Model.ActiveDebts.Any())
+                {
+                    <div class="row">
+                        @foreach (var debt in Model.ActiveDebts)
+                        {
+                            <div class="col-md-6 mb-4">
+                                <div class="lender-debt-card">
+                                    <div class="lender-debt-card__header">
+                                        <h5 class="mb-0">Loan to @debt.Student.User.FullName</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="lender-debt-card__details">
+                                            <div class="lender-debt-card__item">
+                                                <span class="lender-debt-card__label">Principal:</span>
+                                                <span class="lender-debt-card__value">@debt.PrincipalAmount.ToString("C")</span>
+                                            </div>
+                                            <div class="lender-debt-card__item">
+                                                <span class="lender-debt-card__label">Current Balance:</span>
+                                                <span class="lender-debt-card__value">@debt.CurrentBalance.ToString("C")</span>
+                                            </div>
+                                            <div class="lender-debt-card__item">
+                                                <span class="lender-debt-card__label">Due Date:</span>
+                                                <span class="lender-debt-card__value">@debt.DueDate.ToShortDateString()</span>
+                                            </div>
+                                            <div class="lender-debt-card__item">
+                                                <span class="lender-debt-card__label">Status:</span>
+                                                <span class="lender-status-badge lender-status-badge--@debt.Status.ToString().ToLower()">
+                                                    @debt.Status
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 text-center">
+                                            <a href="@Url.Action("DebtDetails", "Lender", new { id = debt.Id })"
+                                               class="btn btn-primary">View Details</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="lender-card">
+                        <div class="card-body text-center">
+                            <p class="mb-0">No active debts found.</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

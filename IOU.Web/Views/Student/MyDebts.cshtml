@@ -1,4 +1,41 @@
-﻿@{
+﻿@model List<IOU.Web.Models.Debt>
+@{
     Layout = "_Layout";
     ViewData["Title"] = "My Debts";
+}
+<h1>My Debts</h1>
+
+@if (Model.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Lender</th>
+                <th>Purpose</th>
+                <th>Principal</th>
+                <th>Current Balance</th>
+                <th>Interest Rate</th>
+                <th>Due Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var debt in Model)
+            {
+                <tr>
+                    <td>@debt.Lender.User.FullName</td>
+                    <td>@debt.Purpose</td>
+                    <td>@debt.PrincipalAmount.ToString("C")</td>
+                    <td>@debt.CurrentBalance.ToString("C")</td>
+                    <td>@debt.InterestRate%</td>
+                    <td>@debt.DueDate.ToShortDateString()</td>
+                    <td>@debt.Status</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No debts found.</p>
 }

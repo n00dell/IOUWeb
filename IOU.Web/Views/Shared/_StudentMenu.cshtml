@@ -1,22 +1,46 @@
-﻿<li class="active">
-    <a asp-controller="Student" asp-action="Dashboard">
-        <i class="fas fa-tachometer-alt"></i> Dashboard
-    </a>
-</li>
-<li>
-    <a asp-controller="Student" asp-action="MyDebts">
-        <i class="fas fa-money-bill-wave"></i> My Debts
-    </a>
-</li>
-<li>
-    <a asp-controller="Student" asp-action="PaymentHistory">
-        <i class="fas fa-history"></i> Payment History
-    </a>
-</li>
-<script>
-        $(document).ready(function () {
-        $('#sidebarCollapse').on('click', function () {
-            $('#sidebar').toggleClass('active');
-        });
-    });
-</script>
+﻿<!-- Views/Shared/_StudentMenu.cshtml -->
+<div class="student-menu">
+    <!-- Profile Summary -->
+    <div class="student-menu__profile mb-4">
+        <div class="d-flex align-items-center p-3">
+            <div class="student-menu__avatar">
+                <i class="fas fa-user-graduate fa-2x text-light"></i>
+            </div>
+            <div class="student-menu__info ms-3">
+                <h6 class="mb-0 text-white">@User.Identity.Name</h6>
+                <small class="text-light-50">Student</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation -->
+    <ul class="student-menu__nav list-unstyled">
+        <li class="student-menu__item">
+            <a asp-controller="Student" asp-action="Dashboard"
+               class="student-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Dashboard" ? "active" : "")">
+                <i class="fas fa-tachometer-alt student-menu__icon"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+
+        <li class="student-menu__section">
+            <span class="student-menu__section-text">Debt Management</span>
+        </li>
+
+        <li class="student-menu__item">
+            <a asp-controller="Student" asp-action="MyDebts"
+               class="student-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "MyDebts" ? "active" : "")">
+                <i class="fas fa-money-bill-wave student-menu__icon"></i>
+                <span>My Debts</span>
+            </a>
+        </li>
+
+        <li class="student-menu__item">
+            <a asp-controller="Student" asp-action="PaymentHistory"
+               class="student-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "PaymentHistory" ? "active" : "")">
+                <i class="fas fa-history student-menu__icon"></i>
+                <span>Payment History</span>
+            </a>
+        </li>
+    </ul>
+</div>

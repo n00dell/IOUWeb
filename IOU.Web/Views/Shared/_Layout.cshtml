@@ -29,6 +29,10 @@
                     {
                         <partial name="_AdminMenu" />
                     }
+                    else if (User.IsInRole("Lender")) 
+                    {
+                        <partial name="_LenderMenu" />
+                    }
                     else if (User.IsInRole("Staff"))
                     {
                         <partial name="_StaffMenu" />

@@ -1,0 +1,115 @@
+﻿@model Debt
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Debt Details";
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Debt Details</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Main Information -->
+                    <div class="section-card mb-4">
+                        <h4>Main Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Lender:</strong> @Model.Lender.User.FullName</p>
+                                <p><strong>Principal Amount:</strong> @Model.PrincipalAmount.ToString("C")</p>
+                                <p><strong>Current Balance:</strong> @Model.CurrentBalance.ToString("C")</p>
+                                <p><strong>Status:</strong> <span class="status-badge @Model.Status.ToString().ToLower()">@Model.Status</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Issue Date:</strong> @Model.DateIssued.ToShortDateString()</p>
+                                <p><strong>Due Date:</strong> @Model.DueDate.ToShortDateString()</p>
+                                <p><strong>Purpose:</strong> @Model.Purpose</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interest Information -->
+                    <div class="section-card mb-4">
+                        <h4>Interest Details</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Interest Type:</strong> @Model.InterestType</p>
+                                <p><strong>Interest Rate:</strong> @Model.InterestRate%</p>
+                                <p><strong>Calculation Period:</strong> @Model.CalculationPeriod</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Accumulated Interest:</strong> @Model.AccumulatedInterest.ToString("C")</p>
+                                <p><strong>Last Calculation:</strong> @Model.LastInterestCalculationDate.ToShortDateString()</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Late Fees Information -->
+                    <div class="section-card mb-4">
+                        <h4>Late Fee Details</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Late Fee Amount:</strong> @Model.LateFeeAmount.ToString("C")</p>
+                                <p><strong>Grace Period:</strong> @Model.GracePeriodDays days</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Accumulated Late Fees:</strong> @Model.AccumulatedLateFees.ToString("C")</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Summary -->
+                    <div class="section-card">
+                        <h4>Payment Summary</h4>
+                        <div class="payment-summary">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Principal Amount:</strong> @Model.PrincipalAmount.ToString("C")</p>
+                                    <p><strong>Accumulated Interest:</strong> @Model.AccumulatedInterest.ToString("C")</p>
+                                    <p><strong>Late Fees:</strong> @Model.AccumulatedLateFees.ToString("C")</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="total-amount">
+                                        <strong>Total Amount Due:</strong>
+                                        <span>@Model.CurrentBalance.ToString("C")</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .section-card {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .section-card h4 {
+        color: #2196F3;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #2196F3;
+        padding-bottom: 8px;
+    }
+
+    .payment-summary {
+        background-color: #e3f2fd;
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    .total-amount {
+        font-size: 1.2em;
+        color: #1976D2;
+    }
+
+    /* Keep the existing status-badge styles */
+</style>

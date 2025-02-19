@@ -1,15 +1,75 @@
-﻿<li class="active">
-    <a asp-controller="Lender" asp-action="Dashboard">
-        <i class="fas fa-tachometer-alt"></i> Dashboard
-    </a>
-</li>
-<li>
-    <a asp-controller="Lender" asp-action="Loans">
-        <i class="fas fa-hand-holding-usd"></i> Loans
-    </a>
-</li>
-<li>
-    <a asp-controller="Lender" asp-action="Borrowers">
-        <i class="fas fa-users"></i> Borrowers
-    </a>
-</li>
+﻿<div class="lender-menu">
+    <!-- Profile Summary -->
+    <div class="lender-menu__profile mb-4">
+        <div class="d-flex align-items-center p-3">
+            <div class="lender-menu__avatar">
+                <i class="fas fa-user-circle fa-2x text-light"></i>
+            </div>
+            <div class="lender-menu__info ms-3">
+                <h6 class="mb-0 text-white">@User.Identity.Name</h6>
+                <small class="text-light-50">Lender</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation -->
+    <ul class="lender-menu__nav list-unstyled">
+        <li class="lender-menu__item">
+            <a asp-controller="Lender" asp-action="Dashboard"
+               class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Dashboard" ? "active" : "")">
+                <i class="fas fa-tachometer-alt lender-menu__icon"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+
+        <!-- Loans Section -->
+        <li class="lender-menu__section">
+            <span class="lender-menu__section-text">Loan Management</span>
+        </li>
+        <li class="lender-menu__item">
+            <a asp-controller="Lender" asp-action="CreateDebt"
+               class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "CreateDebt" ? "active" : "")">
+                <i class="fas fa-plus-circle lender-menu__icon"></i>
+                <span>Create New Loan</span>
+            </a>
+        </li>
+        <li class="lender-menu__item">
+            <a asp-controller="Lender" asp-action="Loans"
+               class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Loans" ? "active" : "")">
+                <i class="fas fa-hand-holding-usd lender-menu__icon"></i>
+                <span>Active Loans</span>
+            </a>
+        </li>
+
+        <!-- Borrowers Section -->
+        <li class="lender-menu__section">
+            <span class="lender-menu__section-text">Borrower Management</span>
+        </li>
+        <li class="lender-menu__item">
+            <a asp-controller="Lender" asp-action="Borrowers"
+               class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Borrowers" ? "active" : "")">
+                <i class="fas fa-users lender-menu__icon"></i>
+                <span>Borrowers</span>
+            </a>
+        </li>
+        <li class="lender-menu__item">
+            <a asp-controller="Lender" asp-action="Payments"
+               class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Payments" ? "active" : "")">
+                <i class="fas fa-money-bill-wave lender-menu__icon"></i>
+                <span>Payment History</span>
+            </a>
+        </li>
+
+        <!-- Reports Section -->
+        <li class="lender-menu__section">
+            <span class="lender-menu__section-text">Reports & Analytics</span>
+        </li>
+        <li class="lender-menu__item">
+            <a asp-controller="Lender" asp-action="Reports"
+               class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Reports" ? "active" : "")">
+                <i class="fas fa-chart-line lender-menu__icon"></i>
+                <span>Reports</span>
+            </a>
+        </li>
+    </ul>
+</div>

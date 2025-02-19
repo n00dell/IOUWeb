@@ -147,3 +147,546 @@ body {
 .pagination {
     margin-bottom: 0;
 }
+.dashboard-container {
+    padding: 20px;
+}
+
+.summary-card {
+    background: linear-gradient(135deg, #4CAF50, #2196F3);
+    color: white;
+    border: none;
+    border-radius: 10px;
+}
+
+.total-amount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.amount {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.debt-card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    border-radius: 8px;
+}
+
+    .debt-card:hover {
+        transform: translateY(-5px);
+    }
+
+.debt-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.label {
+    color: #666;
+    font-weight: 500;
+}
+
+.value {
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.pending {
+    background-color: #FFF3CD;
+    color: #856404;
+}
+
+.active {
+    background-color: #D4EDDA;
+    color: #155724;
+}
+
+.overdue {
+    background-color: #F8D7DA;
+    color: #721C24;
+}
+
+.paid {
+    background-color: #D1ECF1;
+    color: #0C5460;
+}
+
+/* lender-dashboard.css */
+
+/* Dashboard Container */
+.lender-dashboard {
+    padding: 20px;
+}
+
+/* Summary Card */
+.lender-summary {
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: white;
+    border: none;
+    border-radius: 10px;
+}
+
+.lender-summary__total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.lender-summary__amount {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* Quick Actions */
+.lender-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.lender-actions__item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    color: #333;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+    .lender-actions__item:hover {
+        background-color: #FF6B6B;
+        color: white;
+        transform: translateX(5px);
+    }
+
+.lender-actions__icon {
+    font-size: 1.2em;
+    margin-right: 12px;
+    width: 24px;
+    text-align: center;
+}
+
+/* Recent Activities */
+.lender-activities {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.lender-activities__item {
+    display: flex;
+    align-items: start;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+    .lender-activities__item:last-child {
+        border-bottom: none;
+    }
+
+.lender-activities__icon {
+    margin-right: 12px;
+    margin-top: 4px;
+}
+
+.lender-activities__content {
+    flex: 1;
+}
+
+.lender-activities__text {
+    color: #333;
+    margin-bottom: 0;
+}
+
+/* Debt Cards */
+.lender-debt-card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    border-radius: 8px;
+    border: none;
+}
+
+    .lender-debt-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+.lender-debt-card__header {
+    background-color: #FF6B6B;
+    color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 15px;
+}
+
+.lender-debt-card__details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lender-debt-card__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+    .lender-debt-card__item:last-child {
+        border-bottom: none;
+    }
+
+.lender-debt-card__label {
+    color: #666;
+    font-weight: 500;
+}
+
+.lender-debt-card__value {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Status Badges */
+.lender-status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.lender-status-badge--pending {
+    background-color: #FFF3CD;
+    color: #856404;
+}
+
+.lender-status-badge--active {
+    background-color: #D4EDDA;
+    color: #155724;
+}
+
+.lender-status-badge--overdue {
+    background-color: #F8D7DA;
+    color: #721C24;
+}
+
+.lender-status-badge--paid {
+    background-color: #D1ECF1;
+    color: #0C5460;
+}
+
+/* Common Card Styles */
+.lender-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.lender-card__header {
+    background-color: #FF6B6B;
+    color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .lender-dashboard__row {
+        flex-direction: column;
+    }
+
+    .lender-actions__item {
+        padding: 10px;
+    }
+
+    .lender-activities__item {
+        padding: 8px 0;
+    }
+
+    .lender-summary__total {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+/* Lender Menu Styles */
+.lender-menu {
+    width: 100%;
+    color: white;
+}
+
+.lender-menu__nav {
+    margin: 0;
+    padding: 0;
+}
+
+.lender-menu__item {
+    margin: 4px 0;
+}
+
+.lender-menu__link {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+    .lender-menu__link:hover {
+        color: #fff;
+        background-color: rgba(255,255,255,0.1);
+        text-decoration: none;
+    }
+
+.lender-menu__icon {
+    width: 20px;
+    margin-right: 10px;
+    text-align: center;
+}
+
+/* Sidebar specific styles */
+#sidebar {
+    min-width: 250px;
+    max-width: 250px;
+    min-height: 100vh;
+    background: #2c3e50;
+    color: #fff;
+    transition: all 0.3s;
+}
+
+    #sidebar .sidebar-header {
+        padding: 20px;
+        background: #233140;
+    }
+
+    #sidebar ul.components {
+        padding: 20px 0;
+        border-bottom: 1px solid #47748b;
+    }
+
+    #sidebar.active {
+        margin-left: -250px;
+    }
+
+@media (max-width: 768px) {
+    #sidebar {
+        margin-left: -250px;
+    }
+
+        #sidebar.active {
+            margin-left: 0;
+        }
+}
+/* Student-specific styles */
+/* Menu Structure */
+.student-menu {
+    width: 100%;
+    color: white;
+}
+
+.student-menu__profile {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.student-menu__section {
+    padding: 1rem 1.5rem 0.5rem;
+}
+
+.student-menu__section-text {
+    color: #4CAF50;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.student-menu__nav {
+    margin: 0;
+    padding: 0;
+}
+
+.student-menu__item {
+    margin: 4px 0;
+}
+
+.student-menu__link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+    .student-menu__link:hover {
+        color: #fff;
+        background-color: rgba(255,255,255,0.1);
+        text-decoration: none;
+    }
+
+    .student-menu__link.active {
+        color: #fff;
+        background-color: #4CAF50;
+    }
+
+.student-menu__icon {
+    width: 20px;
+    margin-right: 10px;
+    text-align: center;
+}
+
+/* Student Dashboard Specific */
+.student-dashboard {
+    padding: 20px;
+}
+
+.student-summary {
+    background: linear-gradient(135deg, #4CAF50, #2196F3);
+    color: white;
+    border: none;
+    border-radius: 10px;
+}
+
+.student-summary__total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.student-summary__amount {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* Student Debt Cards */
+.student-debt-card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    border-radius: 8px;
+    border: none;
+}
+
+    .student-debt-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+.student-debt-card__header {
+    background-color: #4CAF50;
+    color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 15px;
+}
+
+.student-debt-card__details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.student-debt-card__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+    .student-debt-card__item:last-child {
+        border-bottom: none;
+    }
+
+.student-debt-card__label {
+    color: #666;
+    font-weight: 500;
+}
+
+.student-debt-card__value {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Student Status Badges */
+.student-status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.student-status-badge--pending {
+    background-color: #FFF3CD;
+    color: #856404;
+}
+
+.student-status-badge--active {
+    background-color: #D4EDDA;
+    color: #155724;
+}
+
+.student-status-badge--overdue {
+    background-color: #F8D7DA;
+    color: #721C24;
+}
+
+.student-status-badge--paid {
+    background-color: #D1ECF1;
+    color: #0C5460;
+}
+
+/* Common Student Card Styles */
+.student-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.student-card__header {
+    background-color: #4CAF50;
+    color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .student-dashboard__row {
+        flex-direction: column;
+    }
+
+    .student-menu__section-text {
+        display: none;
+    }
+
+    .student-menu__link {
+        padding: 0.75rem 1rem;
+    }
+
+    .student-summary__total {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
