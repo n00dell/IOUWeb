@@ -34,6 +34,8 @@ namespace IOU.Web.Models.ViewModels
         [Range(0, 30)]
         public int GracePeriodDays { get; set; }
 
+        public string? ActionUrl { get; set; }
+
         [Required]
         public string Purpose { get; set; }
     }

@@ -1,0 +1,104 @@
+﻿@using X.PagedList
+@using X.PagedList.Mvc.Core
+@model IPagedList<Notification>
+
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+@* Add these helper methods at the top of your view *@
+@functions {
+    private static string GetNotificationIcon(NotificationType type) => type switch
+    {
+        NotificationType.DebtCreated => "fas fa-file-invoice-dollar",
+        NotificationType.PaymentDue => "fas fa-clock",
+        NotificationType.PaymentReceived => "fas fa-check-circle",
+        NotificationType.PaymentOverdue => "fas fa-exclamation-circle",
+        _ => "fas fa-bell"
+    };
+
+    private static string TimeAgo(DateTime dateTime)
+    {
+        var span = DateTime.UtcNow - dateTime;
+        if (span.Days > 0) return $"{span.Days}d ago";
+        if (span.Hours > 0) return $"{span.Hours}h ago";
+        if (span.Minutes > 0) return $"{span.Minutes}m ago";
+        return "just now";
+    }
+}
+
+<div class="container">
+    <div class="card shadow">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Notifications</h5>
+            @if (Model.Any())
+            {
+                <button id="markAllRead" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-check-double me-1"></i> Mark All as Read
+                </button>
+            }
+        </div>
+
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-bell fa-3x text-muted mb-3"></i>
+                    <p class="lead">No notifications yet</p>
+                </div>
+            }
+            else
+            {
+                <div class="list-group">
+                    @foreach (var notification in Model)
+                    {
+                        <div class="list-group-item @(!notification.IsRead ? "unread bg-light" : "")"
+                             data-id="@notification.Id">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <i class="@GetNotificationIcon(notification.Type) me-2"></i>
+                                    <h5 class="mb-1">@notification.Title</h5>
+                                </div>
+                                <small class="text-muted" title="@notification.CreatedAt">
+                                    @TimeAgo(notification.CreatedAt)
+                                </small>
+                            </div>
+                            <p class="mb-1">@notification.Message</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                @if (!notification.IsRead)
+                                {
+                                    <button class="btn btn-sm btn-outline-primary mark-read">
+                                        <i class="fas fa-check me-1"></i> Mark as Read
+                                    </button>
+                                }
+                                @if (!string.IsNullOrEmpty(notification.ActionUrl))
+                                {
+                                    <a href="@notification.ActionUrl" class="btn btn-sm btn-link">
+                                        View Details
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (Model.PageCount > 1)
+                {
+                    <div class="d-flex justify-content-center mt-4">
+                        @Html.PagedListPager(Model, page => Url.Action("Index", new { page }), new PagedListRenderOptions
+           {
+               LiElementClasses = new string[] { "page-item" },
+               PageClasses = new string[] { "page-link" },
+               UlElementClasses = new string[] { "pagination" }
+           })
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="~/js/notification.js"></script>
+}

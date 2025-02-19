@@ -44,6 +44,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
 builder.Services.AddScoped<IDebtCalculationService, DebtCalculationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 var app = builder.Build();
 
 // Seed Roles

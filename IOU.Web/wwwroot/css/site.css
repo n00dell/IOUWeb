@@ -30,11 +30,11 @@ body {
   text-align: start;
 }
 /* Add to site.css */
+/* Sidebar Styles */
 .wrapper {
     display: flex;
     width: 100%;
     align-items: stretch;
-    min-height: 100vh;
 }
 
 #sidebar {
@@ -48,6 +48,32 @@ body {
         margin-left: -250px;
     }
 
+    #sidebar .sidebar-header {
+        padding: 20px;
+        background: #343a40;
+    }
+
+    #sidebar ul.components {
+        padding: 20px 0;
+    }
+
+    #sidebar ul li a {
+        padding: 10px 20px;
+        font-size: 1.1em;
+        display: block;
+        color: #fff;
+        text-decoration: none;
+    }
+
+        #sidebar ul li a:hover {
+            background: #4b545c;
+        }
+
+    #sidebar ul li.active > a {
+        background: #007bff;
+    }
+
+/* Content area */
 #content {
     width: 100%;
     padding: 20px;
@@ -55,22 +81,29 @@ body {
     transition: all 0.3s;
 }
 
-.sidebar-header {
-    padding: 20px;
+/* Notification styles */
+.notification-count {
+    top: -5px;
+    right: -5px;
+    font-size: 0.7em;
 }
 
-#sidebar ul li a {
+.notification-dropdown {
+    width: 300px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
     padding: 10px;
-    font-size: 1.1em;
-    display: block;
-    color: #fff;
-    text-decoration: none;
+    border-bottom: 1px solid #eee;
 }
 
-    #sidebar ul li a:hover {
-        background: rgba(255, 255, 255, 0.1);
+    .notification-item.unread {
+        background-color: #f8f9fa;
     }
 
+/* Responsive */
 @media (max-width: 768px) {
     #sidebar {
         margin-left: -250px;
@@ -79,4 +112,38 @@ body {
         #sidebar.active {
             margin-left: 0;
         }
+}
+
+/* Profile Dropdown Styles */
+.dropdown-menu {
+    margin-top: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+}
+
+    .dropdown-item:active {
+        background-color: #007bff;
+        color: white;
+    }
+
+.dropdown-divider {
+    margin: 0.5rem 0;
+}
+.unread {
+    border-left: 4px solid #007bff;
+}
+
+.list-group-item {
+    transition: background-color 0.3s ease;
+}
+
+    .list-group-item:hover {
+        background-color: rgba(0,0,0,0.02);
+    }
+
+.pagination {
+    margin-bottom: 0;
 }
