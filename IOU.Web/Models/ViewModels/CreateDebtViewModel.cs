@@ -38,5 +38,20 @@ namespace IOU.Web.Models.ViewModels
 
         [Required]
         public string Purpose { get; set; }
+
+
+        [Required]
+        [Display(Name = "Number of Payments")]
+        [Range(1, 120, ErrorMessage = "Number of payments must be between 1 and 120")]
+        public int NumberOfPayments { get; set; }
+
+        [Required]
+        [Display(Name = "First Payment Date")]
+        [DataType(DataType.Date)]
+        public DateTime FirstPaymentDate { get; set; }
+
+        [Required]
+        [Display(Name = "Payment Frequency")]
+        public PaymentFrequency PaymentFrequency { get; set; }
     }
 }

@@ -54,7 +54,9 @@ namespace IOU.Web.Models
         Pending,
         Active,
         Overdue,
-        Paid
+        Paid,
+        Declined,
+        PendingChanges
     }
     public enum DebtType
     {

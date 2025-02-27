@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IOU.Web.Services.Interfaces;
-using AspNetCoreGeneratedDocument;
 using IOU.Web.Services;
 
 namespace IOU.Web.Controllers
@@ -19,6 +18,7 @@ namespace IOU.Web.Controllers
         private readonly INotificationService _notificationService;
         private readonly ILogger<LenderController> _logger;
         private readonly IDebtService _debtService;
+        private readonly ISchedulePaymentService _paymentService;
 
         public LenderController(
             IOUWebContext context,
@@ -26,8 +26,10 @@ namespace IOU.Web.Controllers
             IDebtCalculationService calculationService,
             INotificationService notificationService,
             IDebtService debtService,
-            ILogger<LenderController> logger)
+            ILogger<LenderController> logger,
+            ISchedulePaymentService paymentService)
         {
+            _paymentService = paymentService;
             _context = context;
             _userManager = userManager;
             _calculationService = calculationService;
@@ -35,7 +37,7 @@ namespace IOU.Web.Controllers
             _logger = logger;
             _debtService = debtService;
         }
-        
+
         [HttpGet]
         [Authorize(Roles = "Lender")]
         public async Task<IActionResult> Dashboard()
@@ -66,6 +68,7 @@ namespace IOU.Web.Controllers
 
             return View(viewModel);
         }
+
         [HttpGet]
         [Authorize(Roles = "Lender")]
         public IActionResult CreateDebt()
@@ -73,11 +76,15 @@ namespace IOU.Web.Controllers
             var viewModel = new CreateDebtViewModel
             {
                 DueDate = DateTime.Today.AddMonths(1),
-                GracePeriodDays = 7
+                GracePeriodDays = 7,
+                FirstPaymentDate = DateTime.Today.AddMonths(1),
+                PaymentFrequency = PaymentFrequency.Monthly,
+                NumberOfPayments = 12
             };
 
             return View(viewModel);
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Lender")]
@@ -109,8 +116,22 @@ namespace IOU.Web.Controllers
                 }
 
                 var debt = CreateDebtEntity(model, lender, student);
+
+                // First save the debt to get a valid ID
                 _context.Debt.Add(debt);
                 await _context.SaveChangesAsync();
+
+                // Then generate payment schedule
+                var paymentRequest = new CreateScheduledPaymentsRequest
+                {
+                    DebtId = debt.Id,
+                    NumberOfPayments = model.NumberOfPayments,
+                    FirstPaymentDate = model.FirstPaymentDate,
+                    Frequency = model.PaymentFrequency,
+                    IncludeInterestInCalculation = true
+                };
+
+                await _paymentService.GeneratePaymentScheduleAsync(paymentRequest);
 
                 // Updated notification creation with lender's name
                 await _notificationService.CreateNotification(
@@ -125,7 +146,7 @@ namespace IOU.Web.Controllers
                 );
 
                 TempData["SuccessMessage"] = "Debt created successfully.";
-                return RedirectToAction(nameof(Views_Lender_Dashboard));
+                return RedirectToAction(nameof(Dashboard)); // Fixed: using correct action name
             }
             catch (Exception ex)
             {
@@ -133,6 +154,36 @@ namespace IOU.Web.Controllers
                 ModelState.AddModelError("", "Error creating debt: " + ex.Message);
                 return View(model);
             }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Lender")]
+        public async Task<IActionResult> DebtDetails(string id)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var debt = await _context.Debt
+                .Include(d => d.Student)
+                    .ThenInclude(s => s.User)
+                .FirstOrDefaultAsync(d => d.Id == id && d.LenderId == currentUser.Id);
+
+            if (debt == null)
+                return NotFound();
+
+            await _debtService.UpdateDebtCalculations(debt.Id);
+            await _paymentService.UpdatePaymentStatusesAsync(debt.Id);
+
+            var payments = await _context.ScheduledPayment
+                .Where(p => p.DebtId == debt.Id)
+                .OrderBy(p => p.DueDate)
+                .ToListAsync();
+
+            var viewModel = new LenderDebtDetailsViewModel
+            {
+                Debt = debt,
+                ScheduledPayments = payments
+            };
+
+            return View(viewModel);
         }
 
         private bool ValidateDebtCreation(CreateDebtViewModel model, out string errorMessage)
@@ -154,6 +205,18 @@ namespace IOU.Web.Controllers
             if (model.GracePeriodDays < 0 || model.GracePeriodDays > 30)
             {
                 errorMessage = "Grace period must be between 0 and 30 days";
+                return false;
+            }
+
+            if (model.FirstPaymentDate <= DateTime.Today)
+            {
+                errorMessage = "First payment date must be in the future";
+                return false;
+            }
+
+            if (model.NumberOfPayments <= 0 || model.NumberOfPayments > 120)
+            {
+                errorMessage = "Number of payments must be between 1 and 120";
                 return false;
             }
 
@@ -209,4 +272,3 @@ namespace IOU.Web.Controllers
         }
     }
 }
-

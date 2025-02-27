@@ -15,7 +15,7 @@ namespace IOU.Web.Data
         public DbSet<Lender> Lender { get; set; }
 
         public DbSet<Notification> Notification { get; set; }
-
+        public DbSet<ScheduledPayment> ScheduledPayment { get; set; }
         public DbSet<StudentGuardian> StudentGuardian { get; set; }
         public DbSet<Debt> Debt { get; set; }
 

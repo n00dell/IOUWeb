@@ -15,12 +15,13 @@ namespace IOU.Web.Controllers
         private readonly IDebtService _debtService;
         private readonly IOUWebContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
-
-        public StudentController(IDebtService debtService, IOUWebContext context, UserManager<ApplicationUser> userManager)
+        private readonly ISchedulePaymentService _paymentService;
+        public StudentController(IDebtService debtService, IOUWebContext context, UserManager<ApplicationUser> userManager, ISchedulePaymentService paymentService)
         {
             _debtService = debtService;
             _context = context;
             _userManager = userManager;
+            _paymentService = paymentService;
         }
 
 
@@ -39,18 +40,36 @@ namespace IOU.Web.Controllers
                     .ThenInclude(l => l.User)
                 .Where(d => d.StudentId == student.UserId)
                 .ToListAsync();
+            var debtsWithPayments = new List<DebtWithNextPayment>();
 
             foreach (var debt in debts)
+            {
                 await _debtService.UpdateDebtCalculations(debt.Id);
+                await _paymentService.UpdatePaymentStatusesAsync(debt.Id);
+
+                var nextPayment = await _context.ScheduledPayment
+                    .Where(p => p.DebtId == debt.Id && p.Status != PaymentStatus.Paid)
+                    .OrderBy(p => p.DueDate)
+                    .FirstOrDefaultAsync();
+
+                debtsWithPayments.Add(new DebtWithNextPayment
+                {
+                    Debt = debt,
+                    NextPayment = nextPayment
+                });
+            }
 
             var viewModel = new StudentDashboardViewModel
             {
                 TotalOwed = debts.Sum(d => d.CurrentBalance),
-                ActiveDebts = debts.OrderByDescending(d => d.DueDate).ToList()
+                ActiveDebts = debts.OrderByDescending(d => d.DueDate).ToList(),
+                DebtWithNextPayments = debtsWithPayments
             };
 
             return View(viewModel);
         }
+
+
         [Authorize(Roles = "Student")]
         public async Task<IActionResult> DebtDetails(string id)
         {
@@ -64,8 +83,31 @@ namespace IOU.Web.Controllers
                 return NotFound();
 
             await _debtService.UpdateDebtCalculations(debt.Id);
+            await _paymentService.UpdatePaymentStatusesAsync(debt.Id);
 
-            return View(debt);
+            var upcomingPayments = await _context.ScheduledPayment
+                .Where(p => p.DebtId == debt.Id && p.Status != PaymentStatus.Paid)
+                .OrderBy(p => p.DueDate)
+                .Take(5)
+                .ToListAsync();
+
+            var totalPaid = await _context.ScheduledPayment
+                .Where(p => p.DebtId == debt.Id && p.Status == PaymentStatus.Paid)
+                .SumAsync(p => p.Amount);
+
+            var remainingPaymentsCount = await _context.ScheduledPayment
+                .CountAsync(p => p.DebtId == debt.Id && p.Status != PaymentStatus.Paid);
+
+            var viewModel = new DebtDetailsViewModel
+            {
+                Debt = debt,
+                UpcomingPayments = upcomingPayments,
+                TotalPaid = totalPaid,
+                RemainingPaymentsCount = remainingPaymentsCount,  // Updated to match the new property name
+                NextPayment = upcomingPayments.FirstOrDefault()
+            };
+
+            return View(viewModel);
         }
 
         [Authorize(Roles = "Student")]
@@ -74,6 +116,9 @@ namespace IOU.Web.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var student = await _context.Student
                 .FirstOrDefaultAsync(s => s.UserId == currentUser.Id);
+
+            if (student == null)
+                return RedirectToAction("Error", "Home");
 
             var debts = await _context.Debt
                 .Include(d => d.Lender)
@@ -88,9 +133,83 @@ namespace IOU.Web.Controllers
         }
 
         [Authorize(Roles = "Student")]
-        public IActionResult PaymentHistory()
+        public async Task<IActionResult> PaymentHistory()
         {
-            return View();
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            if (currentUser == null)
+                return RedirectToAction("Error", "Home");
+
+            var payments = await _context.ScheduledPayment
+                .Include(p => p.Debt)
+                .Where(p => p.Debt.StudentId == currentUser.Id)
+                .OrderByDescending(p => p.DueDate)
+                .ToListAsync();
+
+            return View(payments);
+        }
+
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> ReviewDebt(string id)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var debt = await _context.Debt
+                .Include(d => d.Lender)
+                    .ThenInclude(l => l.User)
+                .FirstOrDefaultAsync(d => d.Id == id && d.StudentId == currentUser.Id);
+
+            if (debt == null)
+                return NotFound();
+
+            var payments = await _context.ScheduledPayment
+                .Where(p => p.DebtId == debt.Id)
+                .OrderBy(p => p.DueDate)
+                .ToListAsync();
+
+            var viewModel = new ReviewDebtViewModel
+            {
+                Debt = debt,
+                ScheduledPayments = payments
+            };
+
+            return View(viewModel);
+        }
+         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> ReviewDebtDecision(ReviewDebtViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View("ReviewDebt", model);
+                
+            var currentUser = await _userManager.GetUserAsync(User);
+            var debt = await _context.Debt
+                .FirstOrDefaultAsync(d => d.Id == model.Debt.Id && d.StudentId == currentUser.Id);
+                
+            if (debt == null)
+                return NotFound();
+                
+            // Update debt status based on decision
+            switch (model.Decision)
+            {
+                case DebtReviewDecision.Accept:
+                    debt.Status = DebtStatus.Active;
+                    break;
+                case DebtReviewDecision.Decline:
+                    debt.Status = DebtStatus.Declined;
+                    break;
+                case DebtReviewDecision.RequestChanges:
+                    debt.Status = DebtStatus.PendingChanges;
+                    break;
+            }
+            
+            // Save any comments from the student
+            // Note: You might need to add a Comments field to your Debt model
+            // debt.Comments = model.ReviewComments;
+            
+            await _context.SaveChangesAsync();
+            
+            return RedirectToAction(nameof(Dashboard));
         }
     }
 }

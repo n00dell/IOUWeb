@@ -13,7 +13,7 @@ builder.Services.AddRazorPages(); // Add this for Identity pages
 
 // Add DbContext
 builder.Services.AddDbContext<IOUWebContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add Identity (only once)
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -46,6 +46,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<IDebtCalculationService, DebtCalculationService>();
 builder.Services.AddScoped<IDebtService, DebtService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISchedulePaymentService, ScheduledPaymentService>();
 
 var app = builder.Build();
 

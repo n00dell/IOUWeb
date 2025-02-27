@@ -3,7 +3,6 @@
     Layout = "_Layout";
     ViewData["Title"] = "Student Dashboard";
 }
-
 <div class="dashboard-container">
     <!-- Summary Card -->
     <div class="card summary-card mb-4">
@@ -15,41 +14,53 @@
             </div>
         </div>
     </div>
-
     <!-- Debts Section -->
     <div class="debts-container">
-        @if (Model.ActiveDebts.Any())
+        @if (Model.DebtWithNextPayments.Any())
         {
             <div class="row">
-                @foreach (var debt in Model.ActiveDebts)
+                @foreach (var debtInfo in Model.DebtWithNextPayments)
                 {
                     <div class="col-md-6 col-lg-4 mb-4">
                         <div class="card debt-card">
                             <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Loan from @debt.Lender.User.FullName</h5>
-                                <span class="status-badge @debt.Status.ToString().ToLower()">@debt.Status</span>
+                                <h5 class="mb-0">Loan from @debtInfo.Debt.Lender.User.FullName</h5>
+                                <span class="status-badge @debtInfo.Debt.Status.ToString().ToLower()">@debtInfo.Debt.Status</span>
                             </div>
                             <div class="card-body">
                                 <div class="debt-details">
                                     <div class="detail-item">
                                         <span class="label">Principal:</span>
-                                        <span class="value">@debt.PrincipalAmount.ToString("C")</span>
+                                        <span class="value">@debtInfo.Debt.PrincipalAmount.ToString("C")</span>
                                     </div>
                                     <div class="detail-item">
                                         <span class="label">Current Balance:</span>
-                                        <span class="value">@debt.CurrentBalance.ToString("C")</span>
+                                        <span class="value">@debtInfo.Debt.CurrentBalance.ToString("C")</span>
                                     </div>
                                     <div class="detail-item">
                                         <span class="label">Interest Type:</span>
-                                        <span class="value">@debt.InterestType (@debt.InterestRate%)</span>
+                                        <span class="value">@debtInfo.Debt.InterestType (@debtInfo.Debt.InterestRate%)</span>
                                     </div>
                                     <div class="detail-item">
                                         <span class="label">Due Date:</span>
-                                        <span class="value">@debt.DueDate.ToShortDateString()</span>
+                                        <span class="value">@debtInfo.Debt.DueDate.ToShortDateString()</span>
                                     </div>
+                                    @if (debtInfo.NextPayment != null)
+                                    {
+                                        <div class="detail-item next-payment @(debtInfo.NextPayment.Status == PaymentStatus.Overdue ? "text-danger" : "")">
+                                            <span class="label">Next Payment:</span>
+                                            <span class="value">
+                                                @debtInfo.NextPayment.Amount.ToString("C") on @debtInfo.NextPayment.DueDate.ToShortDateString()
+                                                @if (debtInfo.NextPayment.Status == PaymentStatus.Overdue)
+                                                {
+                                                    <span class="badge bg-danger">Overdue</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    }
                                 </div>
                                 <div class="mt-3 text-center">
-                                    <a href="@Url.Action("DebtDetails", "Student", new { id = debt.Id })"
+                                    <a href="@Url.Action("DebtDetails", "Student", new { id = debtInfo.Debt.Id })"
                                        class="btn btn-primary">View Details</a>
                                 </div>
                             </div>

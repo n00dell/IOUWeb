@@ -11,7 +11,7 @@
         </div>
         <div class="card-body">
             <form asp-action="CreateDebt" method="post">
-                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div asp-validation-summary="All" class="text-danger"></div>
 
                 <div class="row">
                     <div class="col-md-6">
@@ -74,7 +74,7 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-12">
+                    <div class="col-md-6">
                         <div class="form-group mb-3">
                             <label asp-for="GracePeriodDays" class="control-label"></label>
                             <input asp-for="GracePeriodDays" class="form-control" />
@@ -87,6 +87,29 @@
                             <span asp-validation-for="Purpose" class="text-danger"></span>
                         </div>
                     </div>
+
+                    <!-- Add the missing payment schedule fields -->
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="NumberOfPayments" class="control-label">Number of Payments</label>
+                            <input asp-for="NumberOfPayments" class="form-control" />
+                            <span asp-validation-for="NumberOfPayments" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="FirstPaymentDate" class="control-label">First Payment Date</label>
+                            <input asp-for="FirstPaymentDate" class="form-control" type="date" />
+                            <span asp-validation-for="FirstPaymentDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="PaymentFrequency" class="control-label">Payment Frequency</label>
+                            <select asp-for="PaymentFrequency" asp-items="Html.GetEnumSelectList<PaymentFrequency>()" class="form-control">
+                                <option value="">Select Payment Frequency</option>
+                            </select>
+                            <span asp-validation-for="PaymentFrequency" class="text-danger"></span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Loan Summary Section -->
@@ -97,13 +120,13 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4">
-                                <p><strong>Monthly Payment:</strong> <span id="monthlyPayment">Ksh0.00</span></p>
+                                <p><strong>Monthly Payment:</strong> <span id="monthlyPayment">$0.00</span></p>
                             </div>
                             <div class="col-md-4">
-                                <p><strong>Total Interest:</strong> <span id="totalInterest">Ksh0.00</span></p>
+                                <p><strong>Total Interest:</strong> <span id="totalInterest">$0.00</span></p>
                             </div>
                             <div class="col-md-4">
-                                <p><strong>Total Amount:</strong> <span id="totalAmount">Ksh0.00</span></p>
+                                <p><strong>Total Amount:</strong> <span id="totalAmount">$0.00</span></p>
                             </div>
                         </div>
                     </div>
@@ -131,17 +154,21 @@
                 var calculationPeriod = $('#CalculationPeriod').val();
                 var dueDate = new Date($('#DueDate').val());
                 var today = new Date();
+                var numberOfPayments = parseInt($('#NumberOfPayments').val()) || 12;
 
                 if (principal > 0 && interestRate > 0 && dueDate > today) {
                     var months = (dueDate.getFullYear() - today.getFullYear()) * 12 +
                         (dueDate.getMonth() - today.getMonth());
+
+                    // Use number of payments instead of months for payment calculation if available
+                    var paymentPeriod = numberOfPayments > 0 ? numberOfPayments : months;
 
                     var totalInterest = 0;
                     var monthlyPayment = 0;
 
                     if (interestType === '@InterestType.Simple.ToString()') {
                         totalInterest = (principal * (interestRate/100) * (months/12));
-                        monthlyPayment = (principal + totalInterest) / months;
+                        monthlyPayment = (principal + totalInterest) / paymentPeriod;
                     } else {
                         // Compound interest calculation
                         var n = calculationPeriod === '@InterestCalculationPeriod.Monthly.ToString()' ? 12 :
@@ -151,7 +178,7 @@
                         var t = months / 12;
                         var amount = principal * Math.pow(1 + r, n * t);
                         totalInterest = amount - principal;
-                        monthlyPayment = amount / months;
+                        monthlyPayment = amount / paymentPeriod;
                     }
 
                     $('#monthlyPayment').text('$' + monthlyPayment.toFixed(2));
@@ -161,7 +188,7 @@
             }
 
             // Calculate on input change
-            $('#PrincipalAmount, #InterestRate, #InterestType, #CalculationPeriod, #DueDate')
+            $('#PrincipalAmount, #InterestRate, #InterestType, #CalculationPeriod, #DueDate, #NumberOfPayments')
                 .on('input change', calculateLoanDetails);
         });
     </script>
