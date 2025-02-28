@@ -77,7 +77,7 @@ namespace IOU.Web.Controllers
             {
                 DueDate = DateTime.Today.AddMonths(1),
                 GracePeriodDays = 7,
-                FirstPaymentDate = DateTime.Today.AddMonths(1),
+                FirstPaymentDate = DateTime.Today.AddDays(7),
                 PaymentFrequency = PaymentFrequency.Monthly,
                 NumberOfPayments = 12
             };

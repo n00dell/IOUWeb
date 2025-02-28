@@ -108,8 +108,9 @@ namespace IOU.Web.Services
         {
             if (days == 0) return 0;
 
-            decimal dailyInterest = principal * (rate / 100);
-            return Math.Round(dailyInterest * days, 2);
+            decimal annualInterest = principal * (rate / 100m);
+            decimal dailyRate = annualInterest / 365m;
+            return Math.Round(dailyRate * days, 2);
         }
 
         private decimal CalculateCompoundInterest(decimal principal, decimal rate, int days)
