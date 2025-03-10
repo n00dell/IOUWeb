@@ -8,9 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Admin\Admin\Controllers\" />
-    <Folder Include="Admin\Admin\Data\" />
-    <Folder Include="Admin\Admin\Models\" />
+    <Folder Include="Areas\Admin\Data\" />
+    <Folder Include="Areas\Admin\Models\" />
   </ItemGroup>
 
   <ItemGroup>

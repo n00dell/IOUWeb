@@ -690,3 +690,196 @@ body {
         gap: 10px;
     }
 }
+/* Admin Dashboard Styles */
+
+/* Admin Menu */
+.admin-menu {
+    width: 100%;
+    color: white;
+}
+
+.admin-menu__nav {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin-menu__item {
+    margin: 4px 0;
+}
+
+.admin-menu__link {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+    .admin-menu__link:hover {
+        color: #fff;
+        background-color: rgba(255,255,255,0.1);
+        text-decoration: none;
+    }
+
+    .admin-menu__link.active {
+        color: #fff;
+        background-color: #0d6efd;
+    }
+
+.admin-menu__icon {
+    width: 20px;
+    margin-right: 10px;
+    text-align: center;
+}
+
+/* Admin Dashboard */
+.admin-dashboard {
+    padding: 20px;
+}
+
+/* Summary Cards */
+.admin-summary {
+    border: none;
+    border-radius: 10px;
+}
+
+.admin-summary__total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.admin-summary__amount {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* Quick Actions */
+.admin-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.admin-actions__item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    color: #333;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+    .admin-actions__item:hover {
+        background-color: #0d6efd;
+        color: white;
+        transform: translateX(5px);
+    }
+
+.admin-actions__icon {
+    font-size: 1.2em;
+    margin-right: 12px;
+    width: 24px;
+    text-align: center;
+}
+
+/* Recent Activities */
+.admin-activities {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.admin-activities__item {
+    display: flex;
+    align-items: start;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+    .admin-activities__item:last-child {
+        border-bottom: none;
+    }
+
+.admin-activities__icon {
+    margin-right: 12px;
+    margin-top: 4px;
+}
+
+.admin-activities__content {
+    flex: 1;
+}
+
+.admin-activities__text {
+    color: #333;
+    margin-bottom: 0;
+}
+
+/* Admin Cards */
+.admin-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.admin-card__header {
+    background-color: #0d6efd;
+    color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+/* Status Badges */
+.admin-status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.admin-status-badge--pending {
+    background-color: #FFF3CD;
+    color: #856404;
+}
+
+.admin-status-badge--active {
+    background-color: #D4EDDA;
+    color: #155724;
+}
+
+.admin-status-badge--overdue {
+    background-color: #F8D7DA;
+    color: #721C24;
+}
+
+.admin-status-badge--paid {
+    background-color: #D1ECF1;
+    color: #0C5460;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .admin-dashboard__row {
+        flex-direction: column;
+    }
+
+    .admin-actions__item {
+        padding: 10px;
+    }
+
+    .admin-activities__item {
+        padding: 8px 0;
+    }
+
+    .admin-summary__total {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
