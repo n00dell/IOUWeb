@@ -17,13 +17,12 @@ namespace IOU.Web.Models
 
         public virtual Student Student { get; set; }
         public virtual Lender Lender { get; set; }
-        public virtual Guardian Guardian { get; set; }
+       
     }
     public enum UserType
     {
         Admin,
         Lender,
-        Student,
-        Guardian
+        Student     
     }
 }

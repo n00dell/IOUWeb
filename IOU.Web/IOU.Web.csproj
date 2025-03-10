@@ -11,8 +11,6 @@
     <Folder Include="Admin\Admin\Controllers\" />
     <Folder Include="Admin\Admin\Data\" />
     <Folder Include="Admin\Admin\Models\" />
-    <Folder Include="Admin\Admin\Views\" />
-    <Folder Include="Migrations\" />
   </ItemGroup>
 
   <ItemGroup>

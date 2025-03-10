@@ -10,6 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages(); // Add this for Identity pages
+builder.Services.AddHttpClient("mpesa" ,c => {
+    c.BaseAddress = new Uri("https://sandbox.safaricom.co.ke");
+});
 
 // Add DbContext
 builder.Services.AddDbContext<IOUWebContext>(options =>
@@ -54,7 +57,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var roles = new[] { "Admin", "Student", "Lender", "Guardian" };
+    var roles = new[] { "Admin", "Student", "Lender"};
 
     foreach (var role in roles)
     {

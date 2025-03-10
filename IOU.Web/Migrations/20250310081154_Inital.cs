@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace IOU.Web.Migrations
 {
     /// <inheritdoc />
-    public partial class initial : Migration
+    public partial class Inital : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -160,6 +160,142 @@ namespace IOU.Web.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Lender",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CompanyName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    BusinessRegistrationNumber = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Lender", x => x.UserId);
+                    table.ForeignKey(
+                        name: "FK_Lender_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Notification",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Message = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    ActionUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsRead = table.Column<bool>(type: "bit", nullable: false),
+                    RelatedEntityId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RelatedEntityType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReadAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Notification", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Notification_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Student",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    StudentId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    University = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ExpectedGraduationDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Student", x => x.UserId);
+                    table.ForeignKey(
+                        name: "FK_Student_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Debt",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    LenderId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    StudentId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    PrincipalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CurrentBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Purpose = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DebtType = table.Column<int>(type: "int", nullable: false),
+                    DateIssued = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DueDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastInterestCalculationDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    InterestRate = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    AccumulatedInterest = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    InterestType = table.Column<int>(type: "int", nullable: false),
+                    CalculationPeriod = table.Column<int>(type: "int", nullable: false),
+                    LateFeeAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    GracePeriodDays = table.Column<int>(type: "int", nullable: false),
+                    AccumulatedLateFees = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Debt", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Debt_Lender_LenderId",
+                        column: x => x.LenderId,
+                        principalTable: "Lender",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Debt_Student_StudentId",
+                        column: x => x.StudentId,
+                        principalTable: "Student",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ScheduledPayment",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    DebtId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    DueDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PaymentDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    PrincipalPortion = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    InterestPortion = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    LateFeesPortion = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    PaymentMethodId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TransactionReference = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ScheduledPayment", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ScheduledPayment_Debt_DebtId",
+                        column: x => x.DebtId,
+                        principalTable: "Debt",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -198,6 +334,26 @@ namespace IOU.Web.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Debt_LenderId",
+                table: "Debt",
+                column: "LenderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Debt_StudentId",
+                table: "Debt",
+                column: "StudentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notification_UserId",
+                table: "Notification",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScheduledPayment_DebtId",
+                table: "ScheduledPayment",
+                column: "DebtId");
         }
 
         /// <inheritdoc />
@@ -219,7 +375,22 @@ namespace IOU.Web.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "Notification");
+
+            migrationBuilder.DropTable(
+                name: "ScheduledPayment");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "Debt");
+
+            migrationBuilder.DropTable(
+                name: "Lender");
+
+            migrationBuilder.DropTable(
+                name: "Student");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");

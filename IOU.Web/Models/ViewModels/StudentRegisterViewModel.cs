@@ -11,7 +11,9 @@ namespace IOU.Web.Models.ViewModels
         public string University { get; set; }
 
         [Required]
+        [Display(Name = "Expected Graduation Date")]
         [DataType(DataType.Date)]
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}", ApplyFormatInEditMode = true)]
         public DateTime ExpectedGraduationDate { get; set; }
     }
 }

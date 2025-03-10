@@ -171,16 +171,6 @@ namespace IOU.Web.Migrations
                     b.ToTable("Debt");
                 });
 
-            modelBuilder.Entity("IOU.Web.Models.Guardian", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("Guardian");
-                });
-
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
                 {
                     b.Property<string>("UserId")
@@ -320,21 +310,6 @@ namespace IOU.Web.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("Student");
-                });
-
-            modelBuilder.Entity("IOU.Web.Models.StudentGuardian", b =>
-                {
-                    b.Property<string>("StudentUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("GuardianUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("StudentUserId", "GuardianUserId");
-
-                    b.HasIndex("GuardianUserId");
-
-                    b.ToTable("StudentGuardian");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -489,17 +464,6 @@ namespace IOU.Web.Migrations
                     b.Navigation("Student");
                 });
 
-            modelBuilder.Entity("IOU.Web.Models.Guardian", b =>
-                {
-                    b.HasOne("IOU.Web.Models.ApplicationUser", "User")
-                        .WithOne("Guardian")
-                        .HasForeignKey("IOU.Web.Models.Guardian", "UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
                 {
                     b.HasOne("IOU.Web.Models.ApplicationUser", "User")
@@ -542,25 +506,6 @@ namespace IOU.Web.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("IOU.Web.Models.StudentGuardian", b =>
-                {
-                    b.HasOne("IOU.Web.Models.Guardian", "Guardian")
-                        .WithMany("StudentGuardians")
-                        .HasForeignKey("GuardianUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("IOU.Web.Models.Student", "Student")
-                        .WithMany("StudentGuardians")
-                        .HasForeignKey("StudentUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Guardian");
-
-                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -616,19 +561,11 @@ namespace IOU.Web.Migrations
 
             modelBuilder.Entity("IOU.Web.Models.ApplicationUser", b =>
                 {
-                    b.Navigation("Guardian")
-                        .IsRequired();
-
                     b.Navigation("Lender")
                         .IsRequired();
 
                     b.Navigation("Student")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("IOU.Web.Models.Guardian", b =>
-                {
-                    b.Navigation("StudentGuardians");
                 });
 
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
@@ -639,8 +576,6 @@ namespace IOU.Web.Migrations
             modelBuilder.Entity("IOU.Web.Models.Student", b =>
                 {
                     b.Navigation("Debts");
-
-                    b.Navigation("StudentGuardians");
                 });
 #pragma warning restore 612, 618
         }

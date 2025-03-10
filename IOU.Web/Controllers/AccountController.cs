@@ -24,14 +24,17 @@ namespace IOU.Web.Controllers
         [HttpGet]
         public IActionResult Register(UserType userType)
         {
+            
             switch (userType){
                 
                 case UserType.Lender:
                     return View("LenderRegister", new LenderRegisterViewModel());
                 case UserType.Student:
-                    return View("StudentRegister", new StudentRegisterViewModel());
-                case UserType.Guardian:
-                    return View("GuardianRegister", new GuardianRegisterViewModel());
+                    var studentModel = new StudentRegisterViewModel
+                    {
+                        ExpectedGraduationDate = DateTime.Today.AddMonths(1)
+                    };
+                    return View("StudentRegister", studentModel);
                 default:
                     return RedirectToAction("Index", "Home");
                 }
@@ -51,6 +54,7 @@ namespace IOU.Web.Controllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
+                    
                     var user = new ApplicationUser
                     {
                         UserName = model.Email,
@@ -70,7 +74,7 @@ namespace IOU.Web.Controllers
                         }
                         return View("StudentRegister", model);
                     }
-
+                    
                     // Create student record
                     var student = new Student
                     {
@@ -235,10 +239,8 @@ namespace IOU.Web.Controllers
                                 return RedirectToAction("Dashboard", "Student");
                             case "Lender":
                                 return RedirectToAction("Dashboard", "Lender");
-                            case "Guardian":
-                                return RedirectToAction("Dashboard", "Guardian");
                             case "Admin":
-                                return RedirectToAction("Dashboard", "Admin");
+                                return RedirectToAction("Index", "Dashboard" , new { area = "Admin"});
                             default:
                                 return RedirectToAction("Index", "Home");
                         }

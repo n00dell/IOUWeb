@@ -11,16 +11,18 @@ namespace IOU.Web.Data
             {
             }
         public DbSet<Student> Student { get; set; }
-        public DbSet<Guardian> Guardian { get; set; }
+        
         public DbSet<Lender> Lender { get; set; }
 
         public DbSet<Notification> Notification { get; set; }
         public DbSet<ScheduledPayment> ScheduledPayment { get; set; }
-        public DbSet<StudentGuardian> StudentGuardian { get; set; }
+        
         public DbSet<Debt> Debt { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<Debt>(entity =>
             {
                 entity.HasOne(d => d.Student)
@@ -46,24 +48,7 @@ namespace IOU.Web.Data
                 .HasForeignKey<Lender>(l => l.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            // Configure one-to-one relationship between ApplicationUser and Guardian
-            modelBuilder.Entity<Guardian>()
-                .HasOne(g => g.User)
-                .WithOne(u => u.Guardian)
-                .HasForeignKey<Guardian>(g => g.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<StudentGuardian>()
-                .HasKey(sg => new { sg.StudentUserId, sg.GuardianUserId });
-            modelBuilder.Entity<StudentGuardian>()
-                .HasOne(sg => sg.Student)
-                .WithMany(s => s.StudentGuardians)
-                .HasForeignKey(sg => sg.StudentUserId);
-            modelBuilder.Entity<StudentGuardian>()
-                .HasOne(sg => sg.Guardian)
-                .WithMany(g => g.StudentGuardians)
-                .HasForeignKey(sg => sg.GuardianUserId);
+            
         }
 
 

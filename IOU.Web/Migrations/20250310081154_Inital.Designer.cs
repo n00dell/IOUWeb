@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOU.Web.Migrations
 {
     [DbContext(typeof(IOUWebContext))]
-    [Migration("20250218110438_notifications")]
-    partial class notifications
+    [Migration("20250310081154_Inital")]
+    partial class Inital
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -174,16 +174,6 @@ namespace IOU.Web.Migrations
                     b.ToTable("Debt");
                 });
 
-            modelBuilder.Entity("IOU.Web.Models.Guardian", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("Guardian");
-                });
-
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
                 {
                     b.Property<string>("UserId")
@@ -207,15 +197,28 @@ namespace IOU.Web.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("ActionUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
                     b.Property<string>("Message")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("RelatedEntityId")
                         .HasColumnType("nvarchar(max)");
@@ -225,7 +228,8 @@ namespace IOU.Web.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -239,6 +243,55 @@ namespace IOU.Web.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Notification");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.ScheduledPayment", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DebtId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("InterestPortion")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("LateFeesPortion")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PaymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentMethodId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("PrincipalPortion")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TransactionReference")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DebtId");
+
+                    b.ToTable("ScheduledPayment");
                 });
 
             modelBuilder.Entity("IOU.Web.Models.Student", b =>
@@ -260,21 +313,6 @@ namespace IOU.Web.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("Student");
-                });
-
-            modelBuilder.Entity("IOU.Web.Models.StudentGuardian", b =>
-                {
-                    b.Property<string>("StudentUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("GuardianUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("StudentUserId", "GuardianUserId");
-
-                    b.HasIndex("GuardianUserId");
-
-                    b.ToTable("StudentGuardian");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -429,17 +467,6 @@ namespace IOU.Web.Migrations
                     b.Navigation("Student");
                 });
 
-            modelBuilder.Entity("IOU.Web.Models.Guardian", b =>
-                {
-                    b.HasOne("IOU.Web.Models.ApplicationUser", "User")
-                        .WithOne("Guardian")
-                        .HasForeignKey("IOU.Web.Models.Guardian", "UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
                 {
                     b.HasOne("IOU.Web.Models.ApplicationUser", "User")
@@ -462,6 +489,17 @@ namespace IOU.Web.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("IOU.Web.Models.ScheduledPayment", b =>
+                {
+                    b.HasOne("IOU.Web.Models.Debt", "Debt")
+                        .WithMany()
+                        .HasForeignKey("DebtId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Debt");
+                });
+
             modelBuilder.Entity("IOU.Web.Models.Student", b =>
                 {
                     b.HasOne("IOU.Web.Models.ApplicationUser", "User")
@@ -471,25 +509,6 @@ namespace IOU.Web.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("IOU.Web.Models.StudentGuardian", b =>
-                {
-                    b.HasOne("IOU.Web.Models.Guardian", "Guardian")
-                        .WithMany("StudentGuardians")
-                        .HasForeignKey("GuardianUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("IOU.Web.Models.Student", "Student")
-                        .WithMany("StudentGuardians")
-                        .HasForeignKey("StudentUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Guardian");
-
-                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -545,19 +564,11 @@ namespace IOU.Web.Migrations
 
             modelBuilder.Entity("IOU.Web.Models.ApplicationUser", b =>
                 {
-                    b.Navigation("Guardian")
-                        .IsRequired();
-
                     b.Navigation("Lender")
                         .IsRequired();
 
                     b.Navigation("Student")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("IOU.Web.Models.Guardian", b =>
-                {
-                    b.Navigation("StudentGuardians");
                 });
 
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
@@ -568,8 +579,6 @@ namespace IOU.Web.Migrations
             modelBuilder.Entity("IOU.Web.Models.Student", b =>
                 {
                     b.Navigation("Debts");
-
-                    b.Navigation("StudentGuardians");
                 });
 #pragma warning restore 612, 618
         }

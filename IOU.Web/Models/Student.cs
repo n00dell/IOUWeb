@@ -17,8 +17,6 @@ namespace IOU.Web.Models
 
         public DateTime ExpectedGraduationDate { get; set; }
 
-        public List<StudentGuardian> StudentGuardians { get; set; }
-
         public virtual List<Debt> Debts { get; set; }
     }
 }
