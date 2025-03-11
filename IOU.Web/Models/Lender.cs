@@ -17,5 +17,7 @@ namespace IOU.Web.Models
         public string BusinessRegistrationNumber { get; set; }
 
         public virtual List<Debt> IssuedDebts { get; set; }
+
+        public virtual ICollection<DebtEvidence> SubmittedEvidence { get; set; }
     }
 }

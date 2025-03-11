@@ -8,15 +8,18 @@ namespace IOU.Web.Models
         [Key]
         public string Id { get; set; }
         [Required]
-        public string LenderId { get; set; }
+        public string LenderUserId { get; set; }
         [Required]
-        public string StudentId { get; set; }
+        public string StudentUserId { get; set; }
 
         // Basic loan details
         [Required]
         [Range(1, double.MaxValue)]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal PrincipalAmount { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
         public decimal CurrentBalance { get; set; }
+        [StringLength(200)]
         public string Purpose { get; set; }
         public DebtType DebtType { get; set; }
 
@@ -28,6 +31,7 @@ namespace IOU.Web.Models
 
         // Interest
         [Range(0, 100)]
+        [Column(TypeName = "decimal(5,2)")]
         public decimal InterestRate { get; set; } // Annual interest rate
         public decimal AccumulatedInterest { get; set; }
         public InterestType InterestType { get; set; }
@@ -43,10 +47,11 @@ namespace IOU.Web.Models
         public DebtStatus Status { get; set; }
 
         // Navigation properties
-        [ForeignKey("StudentId")]
+        [ForeignKey("StudentUserId")]
         public virtual Student Student { get; set; }
-        [ForeignKey("LenderId")]
+        [ForeignKey("LenderUserId")]
         public virtual Lender Lender { get; set; }
+        public virtual ICollection<Dispute> Disputes { get; set; }
     }
 
     public enum DebtStatus

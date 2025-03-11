@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace IOU.Web.Migrations
 {
     /// <inheritdoc />
-    public partial class Inital : Migration
+    public partial class init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -231,40 +231,75 @@ namespace IOU.Web.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    LenderId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    StudentId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    PrincipalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CurrentBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Purpose = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LenderUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    StudentUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    PrincipalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    CurrentBalance = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Purpose = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     DebtType = table.Column<int>(type: "int", nullable: false),
                     DateIssued = table.Column<DateTime>(type: "datetime2", nullable: false),
                     DueDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     LastInterestCalculationDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    InterestRate = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    AccumulatedInterest = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    InterestRate = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    AccumulatedInterest = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     InterestType = table.Column<int>(type: "int", nullable: false),
                     CalculationPeriod = table.Column<int>(type: "int", nullable: false),
-                    LateFeeAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    LateFeeAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     GracePeriodDays = table.Column<int>(type: "int", nullable: false),
-                    AccumulatedLateFees = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    AccumulatedLateFees = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Debt", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Debt_Lender_LenderId",
-                        column: x => x.LenderId,
+                        name: "FK_Debt_Lender_LenderUserId",
+                        column: x => x.LenderUserId,
                         principalTable: "Lender",
                         principalColumn: "UserId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Debt_Student_StudentId",
-                        column: x => x.StudentId,
+                        name: "FK_Debt_Student_StudentUserId",
+                        column: x => x.StudentUserId,
                         principalTable: "Student",
                         principalColumn: "UserId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Dispute",
+                columns: table => new
+                {
+                    DisputeId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
+                    DebtId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ResolvedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AdminNotes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    StudentUserId = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Dispute", x => x.DisputeId);
+                    table.ForeignKey(
+                        name: "FK_Dispute_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Dispute_Debt_DebtId",
+                        column: x => x.DebtId,
+                        principalTable: "Debt",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Dispute_Student_StudentUserId",
+                        column: x => x.StudentUserId,
+                        principalTable: "Student",
+                        principalColumn: "UserId");
                 });
 
             migrationBuilder.CreateTable(
@@ -273,12 +308,12 @@ namespace IOU.Web.Migrations
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     DebtId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     DueDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     PaymentDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    PrincipalPortion = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    InterestPortion = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    LateFeesPortion = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    PrincipalPortion = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    InterestPortion = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    LateFeesPortion = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -293,6 +328,86 @@ namespace IOU.Web.Migrations
                         column: x => x.DebtId,
                         principalTable: "Debt",
                         principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DebtEvidence",
+                columns: table => new
+                {
+                    EvidenceId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    DisputeId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    LenderUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    FilePath = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    ContentType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    UploadDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DebtEvidence", x => x.EvidenceId);
+                    table.ForeignKey(
+                        name: "FK_DebtEvidence_Dispute_DisputeId",
+                        column: x => x.DisputeId,
+                        principalTable: "Dispute",
+                        principalColumn: "DisputeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_DebtEvidence_Lender_LenderUserId",
+                        column: x => x.LenderUserId,
+                        principalTable: "Lender",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DisputeDetail",
+                columns: table => new
+                {
+                    DisputeId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Reason = table.Column<int>(type: "int", nullable: false),
+                    OtherReasonDetail = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    DisputeExplanation = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    RequestedResolution = table.Column<int>(type: "int", nullable: false),
+                    OtherResolutionDetail = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    RequestedReductionAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    DeclarationConfirmed = table.Column<bool>(type: "bit", nullable: false),
+                    DigitalSignature = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SignatureDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DisputeDetail", x => x.DisputeId);
+                    table.ForeignKey(
+                        name: "FK_DisputeDetail_Dispute_DisputeId",
+                        column: x => x.DisputeId,
+                        principalTable: "Dispute",
+                        principalColumn: "DisputeId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupportingDocument",
+                columns: table => new
+                {
+                    DocumentId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    DisputeId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    FilePath = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    ContentType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    UploadDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DocumentType = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupportingDocument", x => x.DocumentId);
+                    table.ForeignKey(
+                        name: "FK_SupportingDocument_Dispute_DisputeId",
+                        column: x => x.DisputeId,
+                        principalTable: "Dispute",
+                        principalColumn: "DisputeId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -336,14 +451,39 @@ namespace IOU.Web.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Debt_LenderId",
+                name: "IX_Debt_LenderUserId",
                 table: "Debt",
-                column: "LenderId");
+                column: "LenderUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Debt_StudentId",
+                name: "IX_Debt_StudentUserId",
                 table: "Debt",
-                column: "StudentId");
+                column: "StudentUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DebtEvidence_DisputeId",
+                table: "DebtEvidence",
+                column: "DisputeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DebtEvidence_LenderUserId",
+                table: "DebtEvidence",
+                column: "LenderUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Dispute_DebtId",
+                table: "Dispute",
+                column: "DebtId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Dispute_StudentUserId",
+                table: "Dispute",
+                column: "StudentUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Dispute_UserId",
+                table: "Dispute",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Notification_UserId",
@@ -354,6 +494,11 @@ namespace IOU.Web.Migrations
                 name: "IX_ScheduledPayment_DebtId",
                 table: "ScheduledPayment",
                 column: "DebtId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportingDocument_DisputeId",
+                table: "SupportingDocument",
+                column: "DisputeId");
         }
 
         /// <inheritdoc />
@@ -375,13 +520,25 @@ namespace IOU.Web.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "DebtEvidence");
+
+            migrationBuilder.DropTable(
+                name: "DisputeDetail");
+
+            migrationBuilder.DropTable(
                 name: "Notification");
 
             migrationBuilder.DropTable(
                 name: "ScheduledPayment");
 
             migrationBuilder.DropTable(
+                name: "SupportingDocument");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "Dispute");
 
             migrationBuilder.DropTable(
                 name: "Debt");

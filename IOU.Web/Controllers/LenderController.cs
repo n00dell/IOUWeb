@@ -53,7 +53,7 @@ namespace IOU.Web.Controllers
             var debts = await _context.Debt
                 .Include(d => d.Student)
                     .ThenInclude(s => s.User)
-                .Where(d => d.LenderId == lender.UserId)
+                .Where(d => d.LenderUserId == lender.UserId)
                 .ToListAsync();
 
             // Update calculations for each debt
@@ -164,7 +164,7 @@ namespace IOU.Web.Controllers
             var debt = await _context.Debt
                 .Include(d => d.Student)
                     .ThenInclude(s => s.User)
-                .FirstOrDefaultAsync(d => d.Id == id && d.LenderId == currentUser.Id);
+                .FirstOrDefaultAsync(d => d.Id == id && d.LenderUserId == currentUser.Id);
 
             if (debt == null)
                 return NotFound();
@@ -250,8 +250,8 @@ namespace IOU.Web.Controllers
             return new Debt
             {
                 Id = Guid.NewGuid().ToString(),
-                LenderId = lender.UserId,
-                StudentId = student.UserId,
+                LenderUserId = lender.UserId,
+                StudentUserId = student.UserId,
                 DebtType = model.DebtType,
                 PrincipalAmount = model.PrincipalAmount,
                 CurrentBalance = model.PrincipalAmount,

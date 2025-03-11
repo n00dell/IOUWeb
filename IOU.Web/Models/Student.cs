@@ -18,5 +18,8 @@ namespace IOU.Web.Models
         public DateTime ExpectedGraduationDate { get; set; }
 
         public virtual List<Debt> Debts { get; set; }
+
+        public virtual ICollection<Dispute> Disputes { get; set; }
+
     }
 }

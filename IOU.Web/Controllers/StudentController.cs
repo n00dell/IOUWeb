@@ -40,7 +40,7 @@ namespace IOU.Web.Controllers
             var debts = await _context.Debt
                 .Include(d => d.Lender)
                     .ThenInclude(l => l.User)
-                .Where(d => d.StudentId == student.UserId)
+                .Where(d => d.StudentUserId == student.UserId)
                 .ToListAsync();
             var debtsWithPayments = new List<DebtWithNextPayment>();
 
@@ -86,7 +86,7 @@ namespace IOU.Web.Controllers
                         .ThenInclude(l => l.User)
                     .Include(d => d.Student)
                         .ThenInclude(s => s.User)
-                    .FirstOrDefaultAsync(d => d.Id == id && d.StudentId == currentUser.Id);
+                    .FirstOrDefaultAsync(d => d.Id == id && d.StudentUserId == currentUser.Id);
 
                 if (debt == null)
                     return NotFound();
@@ -128,7 +128,7 @@ namespace IOU.Web.Controllers
             var debts = await _context.Debt
                 .Include(d => d.Lender)
                     .ThenInclude(l => l.User)
-                .Where(d => d.StudentId == student.UserId)
+                .Where(d => d.StudentUserId == student.UserId)
                 .ToListAsync();
 
             var debtsWithPayments = new List<DebtWithNextPayment>();
@@ -162,7 +162,7 @@ namespace IOU.Web.Controllers
 
             var payments = await _context.ScheduledPayment
                 .Include(p => p.Debt)
-                .Where(p => p.Debt.StudentId == currentUser.Id)
+                .Where(p => p.Debt.StudentUserId == currentUser.Id)
                 .OrderByDescending(p => p.DueDate)
                 .ToListAsync();
 
@@ -176,7 +176,7 @@ namespace IOU.Web.Controllers
             var debt = await _context.Debt
                 .Include(d => d.Lender)
                     .ThenInclude(l => l.User)
-                .FirstOrDefaultAsync(d => d.Id == id && d.StudentId == currentUser.Id);
+                .FirstOrDefaultAsync(d => d.Id == id && d.StudentUserId == currentUser.Id);
 
             if (debt == null)
                 return NotFound();
@@ -206,7 +206,7 @@ namespace IOU.Web.Controllers
             {
                 var currentUser = await _userManager.GetUserAsync(User);
                 var debt = await _context.Debt
-                    .FirstOrDefaultAsync(d => d.Id == model.Debt.Id && d.StudentId == currentUser.Id);
+                    .FirstOrDefaultAsync(d => d.Id == model.Debt.Id && d.StudentUserId == currentUser.Id);
 
                 if (debt == null)
                     return NotFound();

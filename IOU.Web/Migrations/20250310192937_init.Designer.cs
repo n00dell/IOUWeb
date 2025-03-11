@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOU.Web.Migrations
 {
     [DbContext(typeof(IOUWebContext))]
-    [Migration("20250310081154_Inital")]
-    partial class Inital
+    [Migration("20250310192937_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -109,9 +109,11 @@ namespace IOU.Web.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("AccumulatedInterest")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("AccumulatedLateFees")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("CalculationPeriod")
@@ -121,6 +123,7 @@ namespace IOU.Web.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("CurrentBalance")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("DateIssued")
@@ -136,7 +139,8 @@ namespace IOU.Web.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("InterestRate")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int>("InterestType")
                         .HasColumnType("int");
@@ -145,33 +149,168 @@ namespace IOU.Web.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("LateFeeAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("LenderId")
+                    b.Property<string>("LenderUserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("PrincipalAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Purpose")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<string>("StudentId")
+                    b.Property<string>("StudentUserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LenderId");
+                    b.HasIndex("LenderUserId");
 
-                    b.HasIndex("StudentId");
+                    b.HasIndex("StudentUserId");
 
                     b.ToTable("Debt");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.DebtEvidence", b =>
+                {
+                    b.Property<string>("EvidenceId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DisputeId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("LenderUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("UploadDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("EvidenceId");
+
+                    b.HasIndex("DisputeId");
+
+                    b.HasIndex("LenderUserId");
+
+                    b.ToTable("DebtEvidence");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.Dispute", b =>
+                {
+                    b.Property<string>("DisputeId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("AdminNotes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DebtId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("ResolvedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StudentUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("DisputeId");
+
+                    b.HasIndex("DebtId");
+
+                    b.HasIndex("StudentUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Dispute");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.DisputeDetail", b =>
+                {
+                    b.Property<string>("DisputeId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("DeclarationConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("DigitalSignature")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DisputeExplanation")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("OtherReasonDetail")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("OtherResolutionDetail")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("RequestedReductionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("RequestedResolution")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SignatureDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("DisputeId");
+
+                    b.ToTable("DisputeDetail");
                 });
 
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
@@ -251,6 +390,7 @@ namespace IOU.Web.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -264,9 +404,11 @@ namespace IOU.Web.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("InterestPortion")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("LateFeesPortion")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("PaymentDate")
@@ -276,6 +418,7 @@ namespace IOU.Web.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("PrincipalPortion")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Status")
@@ -313,6 +456,50 @@ namespace IOU.Web.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("Student");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.SupportingDocument", b =>
+                {
+                    b.Property<string>("DocumentId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DisputeId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("UploadDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("DocumentId");
+
+                    b.HasIndex("DisputeId");
+
+                    b.ToTable("SupportingDocument");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -452,19 +639,72 @@ namespace IOU.Web.Migrations
                 {
                     b.HasOne("IOU.Web.Models.Lender", "Lender")
                         .WithMany("IssuedDebts")
-                        .HasForeignKey("LenderId")
+                        .HasForeignKey("LenderUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("IOU.Web.Models.Student", "Student")
                         .WithMany("Debts")
-                        .HasForeignKey("StudentId")
+                        .HasForeignKey("StudentUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Lender");
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.DebtEvidence", b =>
+                {
+                    b.HasOne("IOU.Web.Models.Dispute", "Dispute")
+                        .WithMany("LenderEvidence")
+                        .HasForeignKey("DisputeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IOU.Web.Models.Lender", "Lender")
+                        .WithMany("SubmittedEvidence")
+                        .HasForeignKey("LenderUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Dispute");
+
+                    b.Navigation("Lender");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.Dispute", b =>
+                {
+                    b.HasOne("IOU.Web.Models.Debt", "Debt")
+                        .WithMany("Disputes")
+                        .HasForeignKey("DebtId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IOU.Web.Models.Student", null)
+                        .WithMany("Disputes")
+                        .HasForeignKey("StudentUserId");
+
+                    b.HasOne("IOU.Web.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Debt");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.DisputeDetail", b =>
+                {
+                    b.HasOne("IOU.Web.Models.Dispute", "Dispute")
+                        .WithOne("DisputeDetail")
+                        .HasForeignKey("IOU.Web.Models.DisputeDetail", "DisputeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dispute");
                 });
 
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
@@ -509,6 +749,17 @@ namespace IOU.Web.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.SupportingDocument", b =>
+                {
+                    b.HasOne("IOU.Web.Models.Dispute", "Dispute")
+                        .WithMany("SupportingDocuments")
+                        .HasForeignKey("DisputeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dispute");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -571,14 +822,33 @@ namespace IOU.Web.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("IOU.Web.Models.Debt", b =>
+                {
+                    b.Navigation("Disputes");
+                });
+
+            modelBuilder.Entity("IOU.Web.Models.Dispute", b =>
+                {
+                    b.Navigation("DisputeDetail")
+                        .IsRequired();
+
+                    b.Navigation("LenderEvidence");
+
+                    b.Navigation("SupportingDocuments");
+                });
+
             modelBuilder.Entity("IOU.Web.Models.Lender", b =>
                 {
                     b.Navigation("IssuedDebts");
+
+                    b.Navigation("SubmittedEvidence");
                 });
 
             modelBuilder.Entity("IOU.Web.Models.Student", b =>
                 {
                     b.Navigation("Debts");
+
+                    b.Navigation("Disputes");
                 });
 #pragma warning restore 612, 618
         }
