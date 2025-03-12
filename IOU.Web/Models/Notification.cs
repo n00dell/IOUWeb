@@ -4,6 +4,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace IOU.Web.Models
 {
+    [Index(nameof(UserId))]
+    [Index(nameof(IsRead))]
+    [Index(nameof(CreatedAt))]
     public class Notification
     {
         [Required]
@@ -12,24 +15,28 @@ namespace IOU.Web.Models
         public string UserId { get; set; }
         [Required]
         [MaxLength(100)]
+        [MinLength(5)]
         public string Title { get; set; }
         [Required]
         [MaxLength(500)]
+        [MinLength(10)]
         public string Message { get; set; }
 
-        public bool IsDeleted { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        [Url]
         public string? ActionUrl { get; set; }
         public NotificationType Type { get; set; }
         
-        public DateTime CreatedAt { get; set; }
-        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; } = System.DateTime.Now;
+        public bool IsRead { get; set; } = false;
         public string? RelatedEntityId { get; set; }  // e.g., DebtId
-        public string? RelatedEntityType { get; set; }  // e.g., "Debt"
+        public RelatedEntityType? RelatedEntityType { get; set; }  // e.g., "Debt"
 
         [ForeignKey("UserId")]
         public virtual ApplicationUser User { get; set; }
         public DateTime? ReadAt { get; set; }
         public DateTime? DeletedAt { get; set; }
+        
     }
     public enum NotificationType
     {
@@ -41,6 +48,15 @@ namespace IOU.Web.Models
         DebtRejected,
         InterestAccrued,
         LateFeeAdded,
-        General
+        EvidenceSubmitted,
+        General,
+        DisputeCreated
+    }
+    public enum RelatedEntityType
+    {
+        Debt,
+        Dispute,
+        Payment,
+        Other
     }
 }

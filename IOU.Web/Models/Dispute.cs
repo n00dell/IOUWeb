@@ -28,7 +28,7 @@ namespace IOU.Web.Models
         public DateTime? ResolvedDate { get; set; }
 
         [StringLength(500)]
-        public string AdminNotes { get; set; }
+        public string? AdminNotes { get; set; }
 
         [ForeignKey("UserId")]
         public virtual ApplicationUser User { get; set; } // Student

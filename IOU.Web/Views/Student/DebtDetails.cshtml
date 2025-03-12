@@ -5,9 +5,16 @@
 }
 
 <div class="student-dashboard">
+    <!-- DebtDetails.cshtml -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">Debt Details</h1>
-        <a asp-action="Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+        <div>
+            <a asp-action="Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+            <a asp-action="CreateDispute" asp-controller="Student" asp-route-debtId="@Model.Debt.Id" class="btn btn-danger ms-2">
+                Dispute This Debt
+            </a>
+        </div>
+    </div>
     </div>
 
     <!-- Summary Cards -->

@@ -1,41 +1,132 @@
-﻿@model List<IOU.Web.Models.Debt>
+﻿@model List<IOU.Web.Models.DebtWithNextPayment>
 @{
     Layout = "_Layout";
     ViewData["Title"] = "My Debts";
 }
-<h1>My Debts</h1>
 
-@if (Model.Any())
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Lender</th>
-                <th>Purpose</th>
-                <th>Principal</th>
-                <th>Current Balance</th>
-                <th>Interest Rate</th>
-                <th>Due Date</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var debt in Model)
-            {
-                <tr>
-                    <td>@debt.Lender.User.FullName</td>
-                    <td>@debt.Purpose</td>
-                    <td>@debt.PrincipalAmount.ToString("C")</td>
-                    <td>@debt.CurrentBalance.ToString("C")</td>
-                    <td>@debt.InterestRate%</td>
-                    <td>@debt.DueDate.ToShortDateString()</td>
-                    <td>@debt.Status</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
-else
-{
-    <p>No debts found.</p>
-}
+<div class="student-dashboard">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">My Debts</h1>
+        <a asp-action="Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+
+    @if (Model.Any())
+    {
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="student-card student-card__header p-3">
+                    <div class="student-debt-card__label text-white">Total Debt Amount</div>
+                    <div class="student-debt-card__value h4 text-white">@Model.Sum(d => d.Debt.PrincipalAmount).ToString("C")</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="student-card student-card__header p-3">
+                    <div class="student-debt-card__label text-white">Current Balance</div>
+                    <div class="student-debt-card__value h4 text-white">@Model.Sum(d => d.Debt.CurrentBalance).ToString("C")</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="student-card student-card__header p-3">
+                    <div class="student-debt-card__label text-white">Total Debts</div>
+                    <div class="student-debt-card__value h4 text-white">@Model.Count</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="student-card student-card__header p-3">
+                    <div class="student-debt-card__label text-white">Next Due Payment</div>
+                    <div class="student-debt-card__value h4 text-white">
+                        @{
+                            var nextDuePayment = Model
+                            .Where(d => d.NextPayment != null)
+                            .OrderBy(d => d.NextPayment.DueDate)
+                            .FirstOrDefault()?.NextPayment;
+
+                            if (nextDuePayment != null)
+                            {
+                                @nextDuePayment.DueDate.ToShortDateString()
+                            }
+                            else
+                            {
+                                <text>None</text>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debts List -->
+        <div class="student-card">
+            <div class="student-card__header p-3">
+                <h5 class="mb-0 text-white">All Debts</h5>
+            </div>
+            <div class="p-3">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Lender</th>
+                                <th>Purpose</th>
+                                <th>Principal</th>
+                                <th>Current Balance</th>
+                                <th>Interest Rate</th>
+                                <th>Next Payment</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                var debt = item.Debt;
+                                <tr>
+                                    <td>@debt.Lender.User.FullName</td>
+                                    <td>@debt.Purpose</td>
+                                    <td>@debt.PrincipalAmount.ToString("C")</td>
+                                    <td>@debt.CurrentBalance.ToString("C")</td>
+                                    <td>@debt.InterestRate.ToString("0.00")%</td>
+                                    <td>
+                                        @if (item.NextPayment != null)
+                                        {
+                                            <div>@item.NextPayment.DueDate.ToShortDateString()</div>
+                                            <div class="small text-muted">@item.NextPayment.Amount.ToString("C")</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">None</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="student-status-badge student-status-badge--@debt.Status.ToString().ToLower()">
+                                            @debt.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a asp-action="Details" asp-route-id="@debt.Id" class="btn btn-sm btn-outline-primary">View Details</a>
+                                        <a asp-action="CreateDispute" asp-controller="Student" asp-route-debtId="@debt.Id" class="btn btn-sm btn-outline-danger ms-2">
+                                            Dispute
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="student-card">
+            <div class="student-card__header p-3">
+                <h5 class="mb-0 text-white">My Debts</h5>
+            </div>
+            <div class="p-3">
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle me-2"></i> You don't have any debts at this time.
+                </div>
+            </div>
+        </div>
+    }
+</div>

@@ -883,3 +883,40 @@ body {
         gap: 10px;
     }
 }
+/* Notification styling */
+.notification-dropdown {
+    width: 350px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #dee2e6;
+    transition: background-color 0.2s;
+}
+
+    .notification-item.unread {
+        background-color: #f8f9fa;
+    }
+
+    .notification-item:hover {
+        background-color: #e9ecef;
+    }
+
+    .notification-item .notification-time {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+
+    .notification-item .notification-title {
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .notification-item .notification-message {
+        font-size: 0.85rem;
+        color: #495057;
+        line-height: 1.4;
+    }

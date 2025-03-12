@@ -9,6 +9,8 @@ using X.PagedList;
 
 namespace IOU.Web.Controllers
 {
+    [Route("Notifications")]
+    [Authorize]
     public class NotificationController : Controller
     {
         private readonly INotificationService _notificationService;
@@ -73,118 +75,84 @@ namespace IOU.Web.Controllers
             }
         }
 
-        [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> MarkAsRead(string id)
+        [HttpPost("MarkAsRead")]
+        public async Task<IActionResult> MarkAsRead([FromBody] MarkAsReadRequest request)
         {
             try
             {
-                if (string.IsNullOrEmpty(id))
-                {
-                    _logger.LogWarning("Invalid notification ID provided for marking as read");
-                    return Json(new { success = false, message = "Invalid notification ID" });
-                }
-
                 var user = await _userManager.GetUserAsync(User);
-                if (user == null)
-                {
-                    _logger.LogWarning("User not found while marking notification as read");
-                    return Json(new { success = false, message = "User not found" });
-                }
+                if (user == null) return Unauthorized();
 
-                await _notificationService.MarkAsRead(id);
-                _logger.LogInformation($"Notification {id} marked as read for user {user.Id}");
-
-                return Json(new { success = true });
+                await _notificationService.MarkAsRead(request.Id);
+                return Ok(new { success = true });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error marking notification {id} as read");
-                return Json(new { success = false, message = "An error occurred while marking notification as read" });
+                return StatusCode(500, new { error = ex.Message });
             }
         }
 
-        [HttpPost]
-        [Authorize]
+        [HttpPost("MarkAllAsRead")]
         public async Task<IActionResult> MarkAllAsRead()
         {
             try
             {
                 var user = await _userManager.GetUserAsync(User);
-                if (user == null)
-                {
-                    _logger.LogWarning("User not found while marking all notifications as read");
-                    return Json(new { success = false, message = "User not found" });
-                }
+                if (user == null) return Unauthorized();
 
                 await _notificationService.MarkAllAsRead(user.Id);
-                _logger.LogInformation($"All notifications marked as read for user {user.Id}");
-
-                return Json(new { success = true });
+                return Ok(new { success = true });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error marking all notifications as read");
-                return Json(new { success = false, message = "An error occurred while marking all notifications as read" });
+                return StatusCode(500, new { error = ex.Message });
             }
         }
         [Authorize]
+        [HttpGet("GetLatestNotifications")]
         public async Task<IActionResult> GetLatestNotifications()
         {
-            try
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
             {
-                var user = await _userManager.GetUserAsync(User);
-                if (user == null)
-                {
-                    return Json(new List<object>());
-                }
-
-                var notifications = await _notificationService.GetUserNotifications(user.Id, includeRead: false);
-                var latestNotifications = notifications
-                    .OrderByDescending(n => n.CreatedAt)
-                    .Take(5)
-                    .Select(n => new
-                    {
-                        Id = n.Id,
-                        Title = n.Title,
-                        Message = n.Message,
-                        CreatedAt = n.CreatedAt.ToString("g"),
-                        IsRead = n.IsRead,
-                        ActionUrl = n.ActionUrl
-                    }).ToList();
-
-                return Json(latestNotifications);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching latest notifications");
                 return Json(new List<object>());
             }
+
+            var notifications = await _notificationService.GetUserNotifications(currentUser.Id, includeRead: false);
+            var latestNotifications = notifications
+                .OrderByDescending(n => n.CreatedAt)
+                .Take(5)
+                .Select(n => new
+                {
+                    Id = n.Id,
+                    Title = n.Title,
+                    Message = n.Message,
+                    CreatedAt = n.CreatedAt.ToString("g"),
+                    IsRead = n.IsRead,
+                    ActionUrl = n.ActionUrl
+                }).ToList();
+
+            return Json(latestNotifications);
         }
 
         [Authorize]
+        [HttpGet("GetUnreadCount")]
         public async Task<IActionResult> GetUnreadCount()
         {
-            try
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
             {
-                var user = await _userManager.GetUserAsync(User);
-                if (user == null)
-                {
-                    return Json(new { count = 0 });
-                }
-
-                var count = await _context.Notification
-                    .Where(n => n.UserId == user.Id && !n.IsRead && !n.IsDeleted)
-                    .CountAsync();
-
-                return Json(new { count });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching unread count");
                 return Json(new { count = 0 });
             }
+
+            var count = await _context.Notification
+                .Where(n => n.UserId == currentUser.Id && !n.IsRead && !n.IsDeleted)
+                .CountAsync();
+
+            return Json(new { count });
         }
+
+       
 
         // Add a diagnostic endpoint for debugging
         [Authorize]

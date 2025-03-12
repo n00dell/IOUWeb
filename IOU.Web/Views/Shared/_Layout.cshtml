@@ -46,13 +46,15 @@
                         </button>
 
                         <div class="ms-auto d-flex align-items-center">
-                            <!-- Notifications Dropdown -->
-                           
+                            <!-- Notification Dropdown -->
                             <div class="dropdown me-3">
+                                <!-- In _Layout.cshtml -->
                                 <a href="#" class="nav-link position-relative" id="notificationDropdown"
                                    data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fas fa-bell"></i>
-                                    <span class="badge bg-danger notification-count position-absolute" style="display: none;"></span>
+                                    <span class="badge bg-danger notification-count position-absolute top-0 start-100 translate-middle"
+                                          style="display: none; font-size: 0.65rem;">
+                                    </span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end notification-dropdown shadow"
                                      aria-labelledby="notificationDropdown">

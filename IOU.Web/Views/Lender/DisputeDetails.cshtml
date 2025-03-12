@@ -1,0 +1,113 @@
+﻿@model IOU.Web.Models.ViewModels.DisputeDetailsViewModel
+@{
+    ViewData["Title"] = "Dispute Details";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header">
+            <h3 class="mb-0">Dispute #@Model.DisputeBasicInfo.DisputeId</h3>
+        </div>
+
+        <div class="card-body">
+            <!-- Dispute Details -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Student Information</h5>
+                    <dl class="row">
+                        <dt class="col-sm-4">Name:</dt>
+                        <dd class="col-sm-8">@Model.DisputeBasicInfo.DebtorName</dd>
+
+                        <dt class="col-sm-4">Debt ID:</dt>
+                        <dd class="col-sm-8">@Model.DisputeBasicInfo.DebtId</dd>
+                    </dl>
+                </div>
+
+                <div class="col-md-6">
+                    <h5>Dispute Status</h5>
+                    <dl class="row">
+                        <dt class="col-sm-4">Status:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-@GetStatusColor(Model.DisputeBasicInfo.Status)">
+                                @Model.DisputeBasicInfo.Status
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-4">Created:</dt>
+                        <dd class="col-sm-8">@Model.DisputeBasicInfo.CreatedDate.ToString("f")</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Evidence Sections -->
+            <div class="row">
+                <!-- Student Evidence -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Student Evidence</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.StudentDocuments.Any())
+                            {
+                                foreach (var doc in Model.StudentDocuments)
+                                {
+                                    <div class="mb-3">
+                                        <a href="@doc.DownloadUrl" class="d-block" download>
+                                            <i class="fas fa-file-pdf me-2"></i>@doc.FileName
+                                        </a>
+                                        <small class="text-muted">@doc.Description</small>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-muted">No documents submitted by the student.</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lender Evidence -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Submit Evidence</h5>
+                        </div>
+                        <div class="card-body">
+                            <form asp-action="SubmitEvidence" enctype="multipart/form-data">
+                                <input type="hidden" name="disputeId" value="@Model.DisputeBasicInfo.DisputeId" />
+
+                                <div class="mb-3">
+                                    <label class="form-label">Evidence Files</label>
+                                    <input type="file" name="files" multiple class="form-control" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Descriptions</label>
+                                    <input type="text" name="descriptions" class="form-control"
+                                           placeholder="Comma-separated descriptions">
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-upload me-2"></i>Upload Evidence
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetStatusColor(DisputeStatus status) => status switch
+    {
+        DisputeStatus.Submitted => "warning",
+        DisputeStatus.UnderReview => "info",
+        DisputeStatus.Approved => "success",
+        DisputeStatus.Rejected => "danger",
+        _ => "secondary"
+    };
+}

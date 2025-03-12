@@ -25,7 +25,7 @@ namespace IOU.Web.Services
             string message,
             NotificationType type,
             string? relatedEntityId = null,
-            string? relatedEntityType = null,
+            RelatedEntityType? relatedEntityType = null,
             string? actionUrl = null)
         {
             try
@@ -42,8 +42,7 @@ namespace IOU.Web.Services
                     Type = type,
                     CreatedAt = DateTime.UtcNow,
                     IsRead = false,
-                    RelatedEntityId = relatedEntityId,
-                    RelatedEntityType = relatedEntityType,
+                    RelatedEntityId = relatedEntityId,  
                     ActionUrl = actionUrl
                 };
 

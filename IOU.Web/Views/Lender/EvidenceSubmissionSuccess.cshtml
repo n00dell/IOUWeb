@@ -1,0 +1,40 @@
+﻿@model string
+@{
+    ViewData["Title"] = "Evidence Submitted";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h3 class="mb-0">Evidence Submitted Successfully</h3>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>
+                Your evidence has been submitted successfully for Dispute #@Model
+            </div>
+
+            <div class="text-center my-4">
+                <i class="fas fa-file-upload fa-4x text-success mb-3"></i>
+                <h4>Thank you for submitting your evidence</h4>
+                <p class="text-muted">
+                    Your evidence will be reviewed as part of the dispute resolution process.
+                    You will be notified when there are updates to this dispute case.
+                </p>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-6 offset-md-3">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("DisputeDetails", "Lender", new { id = Model })" class="btn btn-primary">
+                            <i class="fas fa-arrow-left me-2"></i>Return to Dispute Details
+                        </a>
+                        <a href="@Url.Action("Disputes", "Lender")" class="btn btn-outline-secondary">
+                            <i class="fas fa-list me-2"></i>View All Disputes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

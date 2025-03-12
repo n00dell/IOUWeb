@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IOU.Web.Services.Interfaces;
 using IOU.Web.Services;
+using System.Security.Claims;
 
 namespace IOU.Web.Controllers
 {
@@ -19,6 +20,7 @@ namespace IOU.Web.Controllers
         private readonly ILogger<LenderController> _logger;
         private readonly IDebtService _debtService;
         private readonly ISchedulePaymentService _paymentService;
+        private readonly IWebHostEnvironment _env;
 
         public LenderController(
             IOUWebContext context,
@@ -27,7 +29,8 @@ namespace IOU.Web.Controllers
             INotificationService notificationService,
             IDebtService debtService,
             ILogger<LenderController> logger,
-            ISchedulePaymentService paymentService)
+            ISchedulePaymentService paymentService,
+            IWebHostEnvironment env)
         {
             _paymentService = paymentService;
             _context = context;
@@ -36,6 +39,7 @@ namespace IOU.Web.Controllers
             _notificationService = notificationService;
             _logger = logger;
             _debtService = debtService;
+            _env = env;
         }
 
         [HttpGet]
@@ -141,7 +145,7 @@ namespace IOU.Web.Controllers
                             $"Due date: {model.DueDate:d}. Please review and approve.",
                     type: NotificationType.DebtCreated,
                     relatedEntityId: debt.Id,
-                    relatedEntityType: "Debt",
+                    relatedEntityType: RelatedEntityType.Debt,
                     actionUrl: $"/Student/ReviewDebt/{debt.Id}"
                 );
 
@@ -269,6 +273,156 @@ namespace IOU.Web.Controllers
                 AccumulatedInterest = 0,
                 AccumulatedLateFees = 0
             };
+        }
+        [HttpGet]
+        public async Task<IActionResult> Disputes()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var disputes = await _context.Dispute
+                .Include(d => d.Debt)
+                .Include(d => d.User)
+                .Include(d => d.DisputeDetail)
+                .Where(d => d.Debt.Lender.UserId == user.Id)
+                .OrderByDescending(d => d.CreatedDate)
+                .ToListAsync();
+
+            return View(disputes);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DisputeDetails(string id)
+        {
+            var dispute = await _context.Dispute
+                .Include(d => d.Debt)
+                    .ThenInclude(d => d.Lender)
+                        .ThenInclude(l => l.User) // Ensure Lender.User is loaded
+                .Include(d => d.User)
+                .Include(d => d.DisputeDetail)
+                .Include(d => d.SupportingDocuments)
+                .Include(d => d.LenderEvidence)
+                    .ThenInclude(e => e.Lender) // Include Lender for DebtEvidence
+                .FirstOrDefaultAsync(d => d.DisputeId == id);
+
+            if (dispute == null)
+            {
+                return NotFound();
+            }
+
+            // Handle potential null references
+            if (dispute.Debt == null || dispute.Debt.Lender == null || dispute.User == null || dispute.DisputeDetail == null)
+            {
+                _logger.LogError("Critical navigation properties are null for dispute {DisputeId}", id);
+                return NotFound();
+            }
+
+            // Safely map SupportingDocuments (handle null collection)
+            var supportingDocuments = dispute.SupportingDocuments?
+                .Select(d => new SupportingDocumentViewModel
+                {
+                    DocumentId = d.DocumentId,
+                    FileName = d.FileName,
+                    ContentType = d.ContentType,
+                    UploadDate = d.UploadDate,
+                    Description = d.Description,
+                    DocumentType = d.DocumentType,
+                    DownloadUrl = Url.Content(d.FilePath)
+                })?.ToList() ?? new List<SupportingDocumentViewModel>();
+
+            // Safely map LenderEvidence (handle null collection)
+            var lenderEvidence = dispute.LenderEvidence?
+                .Select(e => new DebtEvidenceViewModel
+                {
+                    EvidenceId = e.EvidenceId,
+                    LenderName = e.Lender?.User?.FullName ?? "Unknown Lender",
+                    FileName = e.FileName,
+                    ContentType = e.ContentType,
+                    UploadDate = e.UploadDate,
+                    Description = e.Description,
+                    DownloadUrl = Url.Content(e.FilePath)
+                })?.ToList() ?? new List<DebtEvidenceViewModel>();
+
+            var viewModel = new DisputeDetailsViewModel
+            {
+                DisputeBasicInfo = new DisputeViewModel
+                {
+                    DisputeId = dispute.DisputeId,
+                    DebtId = dispute.DebtId,
+                    DebtorName = dispute.User.FullName,
+                    LenderName = dispute.Debt.Lender.User.FullName,
+                    DebtAmount = dispute.Debt.CurrentBalance,
+                    Status = dispute.Status,
+                    CreatedDate = dispute.CreatedDate,
+                    ResolvedDate = dispute.ResolvedDate,
+                    Reason = dispute.DisputeDetail.Reason,
+                    RequestedResolution = dispute.DisputeDetail.RequestedResolution
+                },
+                DisputeExplanation = dispute.DisputeDetail.DisputeExplanation,
+                RequestedReductionAmount = dispute.DisputeDetail.RequestedReductionAmount,
+                DigitalSignature = dispute.DisputeDetail.DigitalSignature,
+                SignatureDate = dispute.DisputeDetail.SignatureDate,
+                StudentDocuments = supportingDocuments,
+                LenderEvidence = lenderEvidence,
+                AdminNotes = dispute.AdminNotes,
+                CanSubmitEvidence = true,
+                CanResolveDispute = true
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SubmitEvidence(string disputeId, List<IFormFile> files, List<string> descriptions)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var dispute = await _context.Dispute
+                .Include(d => d.Debt)
+                .FirstOrDefaultAsync(d => d.DisputeId == disputeId);
+
+            if (dispute?.Debt == null) return NotFound();
+
+            var evidenceDir = Path.Combine(_env.WebRootPath, "evidence", disputeId);
+            Directory.CreateDirectory(evidenceDir);
+
+            foreach (var (file, index) in files.Select((f, i) => (f, i)))
+            {
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+                var filePath = Path.Combine(evidenceDir, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Ensure the FilePath starts with a '/'
+                var relativePath = $"/evidence/{disputeId}/{fileName}";
+
+                _context.DebtEvidence.Add(new DebtEvidence
+                {
+                    EvidenceId = Guid.NewGuid().ToString(),
+                    DisputeId = disputeId,
+                    LenderUserId = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                    FileName = file.FileName,
+                    FilePath = relativePath, // Ensure this starts with '/'
+                    ContentType = file.ContentType,
+                    UploadDate = DateTime.Now,
+                    Description = descriptions.ElementAtOrDefault(index)
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            var studentUserId = dispute.Debt.StudentUserId;
+            await _notificationService.CreateNotification(
+                userId: studentUserId,
+                title: "New Evidence Submitted",
+                message: $"The lender has submitted new evidence for Dispute #{disputeId}. Please review the details.",
+                type: NotificationType.EvidenceSubmitted,
+                relatedEntityId: disputeId,
+                relatedEntityType: RelatedEntityType.Dispute,
+                actionUrl: $"/Student/DisputeDetails/{disputeId}"
+            );
+            return View("EvidenceSubmissionSuccess", disputeId);
         }
     }
 }

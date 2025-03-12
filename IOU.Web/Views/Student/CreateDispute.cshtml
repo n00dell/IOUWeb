@@ -1,0 +1,118 @@
+﻿@model IOU.Web.Models.ViewModels.CreateDisputeViewModel
+
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Dispute Debt";
+}
+
+<div class="student-dashboard">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Dispute Debt</h1>
+        <a asp-action="DebtDetails" asp-route-id="@Model.DebtId" class="btn btn-outline-secondary">Back to Debt Details</a>
+    </div>
+
+    <div class="student-card">
+        <div class="student-card__header p-3">
+            <h5 class="mb-0 text-white">Dispute Form</h5>
+        </div>
+        <div class="p-3">
+            <form asp-action="SubmitDispute" method="post" enctype="multipart/form-data">
+                <div asp-validation-summary="All" class="text-danger"></div>
+
+                <!-- Hidden fields for DebtId and StudentUserId -->
+                <input type="hidden" asp-for="DebtId" />
+                <input type="hidden" asp-for="StudentUserId" />
+
+                <!-- Debt Details -->
+                <div class="form-group mb-3">
+                    <label asp-for="DebtAmount" class="form-label">Debt Amount</label>
+                    <input asp-for="DebtAmount" class="form-control" readonly />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="LenderName" class="form-label">Lender</label>
+                    <input asp-for="LenderName" class="form-control" readonly />
+                </div>
+
+                <!-- Reason for Dispute -->
+                <div class="form-group mb-3">
+                    <label asp-for="Reason" class="form-label">Reason for Dispute</label>
+                    <select asp-for="Reason" class="form-control" asp-items="Html.GetEnumSelectList<DisputeReason>()">
+                        <option value="">Select a reason</option>
+                    </select>
+                    <span asp-validation-for="Reason" class="text-danger"></span>
+                </div>
+
+                <!-- Other Reason Details -->
+                <div class="form-group mb-3">
+                    <label asp-for="OtherReasonDetail" class="form-label">Other Reason Details</label>
+                    <input asp-for="OtherReasonDetail" class="form-control" />
+                    <span asp-validation-for="OtherReasonDetail" class="text-danger"></span>
+                </div>
+
+                <!-- Detailed Explanation -->
+                <div class="form-group mb-3">
+                    <label asp-for="DisputeExplanation" class="form-label">Detailed Explanation</label>
+                    <textarea asp-for="DisputeExplanation" class="form-control" rows="5"></textarea>
+                    <span asp-validation-for="DisputeExplanation" class="text-danger"></span>
+                </div>
+
+                <!-- Requested Resolution -->
+                <div class="form-group mb-3">
+                    <label asp-for="RequestedResolution" class="form-label">Requested Resolution</label>
+                    <select asp-for="RequestedResolution" class="form-control" asp-items="Html.GetEnumSelectList<ResolutionType>()">
+                        <option value="">Select a resolution</option>
+                    </select>
+                    <span asp-validation-for="RequestedResolution" class="text-danger"></span>
+                </div>
+
+                <!-- Other Resolution Details -->
+                <div class="form-group mb-3">
+                    <label asp-for="OtherResolutionDetail" class="form-label">Other Resolution Details</label>
+                    <input asp-for="OtherResolutionDetail" class="form-control" />
+                    <span asp-validation-for="OtherResolutionDetail" class="text-danger"></span>
+                </div>
+
+                <!-- Requested Reduction Amount -->
+                <div class="form-group mb-3">
+                    <label asp-for="RequestedReductionAmount" class="form-label">Requested Reduction Amount</label>
+                    <input asp-for="RequestedReductionAmount" class="form-control" />
+                    <span asp-validation-for="RequestedReductionAmount" class="text-danger"></span>
+                </div>
+
+                <!-- Supporting Documents -->
+                <div class="form-group mb-3">
+                    <label asp-for="SupportingDocuments" class="form-label">Supporting Documents</label>
+                    <input asp-for="SupportingDocuments" type="file" multiple class="form-control" />
+                    <span asp-validation-for="SupportingDocuments" class="text-danger"></span>
+                </div>
+
+                <!-- Document Descriptions -->
+                <div class="form-group mb-3">
+                    <label asp-for="DocumentDescriptions" class="form-label">Document Descriptions</label>
+                    <input asp-for="DocumentDescriptions" class="form-control" />
+                    <span asp-validation-for="DocumentDescriptions" class="text-danger"></span>
+                </div>
+
+                <!-- Declaration Confirmation -->
+                <div class="form-group mb-3 form-check">
+                    <input asp-for="DeclarationConfirmed" class="form-check-input" />
+                    <label asp-for="DeclarationConfirmed" class="form-check-label">I confirm that all information provided is true and accurate to the best of my knowledge.</label>
+                    <span asp-validation-for="DeclarationConfirmed" class="text-danger"></span>
+                </div>
+
+                <!-- Digital Signature -->
+                <div class="form-group mb-3">
+                    <label asp-for="DigitalSignature" class="form-label">Digital Signature (Full Name)</label>
+                    <input asp-for="DigitalSignature" class="form-control" />
+                    <span asp-validation-for="DigitalSignature" class="text-danger"></span>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Submit Dispute</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

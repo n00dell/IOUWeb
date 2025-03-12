@@ -1,0 +1,51 @@
+﻿@model IOU.Web.Models.ViewModels.DisputeConfirmationViewModel
+
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Dispute Confirmation";
+}
+
+<div class="student-dashboard">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Dispute Submitted Successfully</h1>
+        <a asp-action="Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+
+    <div class="student-card">
+        <div class="student-card__header p-3">
+            <h5 class="mb-0 text-white">Dispute Details</h5>
+        </div>
+        <div class="p-3">
+            <div class="student-debt-card__details">
+                <div class="student-debt-card__item">
+                    <span class="student-debt-card__label">Dispute ID</span>
+                    <span class="student-debt-card__value">@Model.DisputeId</span>
+                </div>
+                <div class="student-debt-card__item">
+                    <span class="student-debt-card__label">Lender</span>
+                    <span class="student-debt-card__value">@Model.LenderName</span>
+                </div>
+                <div class="student-debt-card__item">
+                    <span class="student-debt-card__label">Debt Amount</span>
+                    <span class="student-debt-card__value">@Model.DebtAmount.ToString("C")</span>
+                </div>
+                <div class="student-debt-card__item">
+                    <span class="student-debt-card__label">Reason</span>
+                    <span class="student-debt-card__value">@Model.Reason</span>
+                </div>
+                <div class="student-debt-card__item">
+                    <span class="student-debt-card__label">Requested Resolution</span>
+                    <span class="student-debt-card__value">@Model.RequestedResolution</span>
+                </div>
+                <div class="student-debt-card__item">
+                    <span class="student-debt-card__label">Status</span>
+                    <span class="student-debt-card__value">@Model.Status</span>
+                </div>
+                <div class="student-debt-card__item">
+                    <span class="student-debt-card__label">Submitted On</span>
+                    <span class="student-debt-card__value">@Model.CreatedDate.ToString("f")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

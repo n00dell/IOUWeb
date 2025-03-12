@@ -6,7 +6,7 @@ namespace IOU.Web.Services.Interfaces
     {
         Task CreateNotification(string userId, string title, string message,
             NotificationType type, string? relatedEntityId = null,
-            string? relatedEntityType = null, string? actionUrl = null);
+            RelatedEntityType? relatedEntityType = null, string? actionUrl = null);
         Task CreateBulkNotifications(List<Notification> notifications);
         Task<(List<Notification> Items, int TotalCount)> GetUserNotificationsPaged(
             string userId, int page = 1, int pageSize = 20, bool includeRead = false);

@@ -4,6 +4,7 @@ namespace IOU.Web.Models.ViewModels
 {
     public class CreateDisputeViewModel
     {
+        public string StudentUserId { get; set; }
         public string DebtId { get; set; }
 
         [Display(Name = "Debt Amount")]
@@ -32,7 +33,7 @@ namespace IOU.Web.Models.ViewModels
         public string OtherResolutionDetail { get; set; }
 
         [Display(Name = "Requested Reduction Amount")]
-        [Range(0, 100000, ErrorMessage = "Amount must be between $0 and $100,000")]
+        [Range(0, 100000, ErrorMessage = "Amount must be between Ksh0 and Ksh100,000")]
         public decimal? RequestedReductionAmount { get; set; }
 
         [Required]

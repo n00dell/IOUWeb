@@ -5,6 +5,8 @@ namespace IOU.Web.Models.ViewModels
     public class DisputeViewModel
     {
         public string DisputeId { get; set; }
+        public string StudentUserId { get; set; } // Added
+        public string LenderUserId { get; set; } // Added
         public string DebtId { get; set; }
         public string DebtorName { get; set; } // Student name
         public string LenderName { get; set; }
