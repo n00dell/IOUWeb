@@ -1,0 +1,14 @@
+﻿@model NotificationEmailModel
+
+<h2>@Model.Title</h2>
+<p>@Model.Message</p>
+@if (!string.IsNullOrEmpty(Model.ActionUrl))
+{
+    <a href="@Model.ActionUrl" style="color: #007bff; text-decoration: none;">
+        View Details
+    </a>
+}
+
+<p style="color: #6c757d; margin-top: 20px;">
+    This is an automated message from IOU System
+</p>

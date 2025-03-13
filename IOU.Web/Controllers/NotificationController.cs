@@ -1,6 +1,7 @@
 ﻿using IOU.Web.Data;
 using IOU.Web.Models;
 using IOU.Web.Services.Interfaces;
+using Mailjet.Client;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ namespace IOU.Web.Controllers
         private readonly ILogger<NotificationController> _logger;
         private readonly int _pageSize = 10;
         private readonly IOUWebContext _context;
+        public readonly IEmailService _emailService;
 
         public NotificationController(
             INotificationService notificationService,

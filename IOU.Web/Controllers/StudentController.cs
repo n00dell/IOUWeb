@@ -298,6 +298,10 @@ namespace IOU.Web.Controllers
         {
             if (!ModelState.IsValid)
             {
+                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    _logger.LogError($"ModelState Error: {error.ErrorMessage}");
+                }
                 return View("CreateDispute", model);
             }
 
@@ -310,6 +314,7 @@ namespace IOU.Web.Controllers
 
                 if (debt == null)
                 {
+                    _logger.LogWarning("Debt not found for Debt ID: {DebtId}", model.DebtId);
                     return NotFound("Debt not found.");
                 }
 
@@ -338,7 +343,7 @@ namespace IOU.Web.Controllers
                 };
 
                 // Save supporting documents
-                if (model.SupportingDocuments != null)
+                if (model.SupportingDocuments != null && model.SupportingDocuments.Any())
                 {
                     dispute.SupportingDocuments = new List<SupportingDocument>();
                     foreach (var file in model.SupportingDocuments)
@@ -359,7 +364,8 @@ namespace IOU.Web.Controllers
 
                 _context.Dispute.Add(dispute);
                 await _context.SaveChangesAsync();
-                // After saving the dispute:
+
+                // Notify the lender
                 await _notificationService.CreateNotification(
                     userId: debt.Lender.UserId, // Lender's user ID
                     title: "New Dispute Created",
@@ -374,7 +380,7 @@ namespace IOU.Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error submitting dispute.");
+                _logger.LogError(ex, "Error submitting dispute. Details: {Message}", ex.Message);
                 ModelState.AddModelError("", "An error occurred while submitting the dispute. Please try again.");
                 return View("CreateDispute", model);
             }
@@ -382,24 +388,29 @@ namespace IOU.Web.Controllers
 
         private async Task<string> SaveFileAsync(IFormFile file)
         {
-            // Implement logic to save the file to a storage location (e.g., Azure Blob Storage, local disk)
-            // Return the file path or URL
-            var uploadsFolder = Path.Combine("wwwroot", "uploads");
-            if (!Directory.Exists(uploadsFolder))
+            try
             {
-                Directory.CreateDirectory(uploadsFolder);
+                var uploadsFolder = Path.Combine("wwwroot", "uploads");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+
+                return $"/uploads/{uniqueFileName}";
             }
-
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            catch (Exception ex)
             {
-                await file.CopyToAsync(fileStream);
+                _logger.LogError(ex, "Error saving file: {FileName}", file.FileName);
+                throw; // Re-throw the exception to propagate it
             }
-
-            // Return the relative path (without wwwroot)
-            return $"/uploads/{uniqueFileName}";
         }
         [Authorize(Roles = "Student")]
         public async Task<IActionResult> DisputeConfirmation(string disputeId)

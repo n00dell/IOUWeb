@@ -4,19 +4,23 @@ using IOU.Web.Services.Interfaces;
 using IOU.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation; // Add this for runtime compilation
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages(); // Add this for Identity pages
-builder.Services.AddHttpClient("mpesa" ,c => {
+
+// Add HttpClient for Mpesa
+builder.Services.AddHttpClient("mpesa", c =>
+{
     c.BaseAddress = new Uri("https://sandbox.safaricom.co.ke");
 });
 
 // Add DbContext
 builder.Services.AddDbContext<IOUWebContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add Identity (only once)
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -46,10 +50,17 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LogoutPath = "/Account/Logout";
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
+
+// Register custom services
 builder.Services.AddScoped<IDebtCalculationService, DebtCalculationService>();
 builder.Services.AddScoped<IDebtService, DebtService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISchedulePaymentService, ScheduledPaymentService>();
+builder.Services.AddScoped<IRazorViewRenderer, RazorViewRenderer>();
+builder.Services.AddScoped<IEmailService, MailJetEmailService>(); // Register IEmailService
+
+// Add Razor runtime compilation
+builder.Services.AddMvc().AddRazorRuntimeCompilation();
 
 var app = builder.Build();
 
@@ -57,13 +68,13 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var roles = new[] { "Admin", "Student", "Lender"};
+    var roles = new[] { "Admin", "Student", "Lender" };
 
     foreach (var role in roles)
     {
-        if (!roleManager.RoleExistsAsync(role).Result)
+        if (!await roleManager.RoleExistsAsync(role))
         {
-            roleManager.CreateAsync(new IdentityRole(role)).Wait();
+            await roleManager.CreateAsync(new IdentityRole(role));
         }
     }
 }

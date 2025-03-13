@@ -1,6 +1,8 @@
 ﻿using IOU.Web.Data;
 using IOU.Web.Models;
 using IOU.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -10,13 +12,22 @@ namespace IOU.Web.Services
     {
         private readonly IOUWebContext _context;
         private readonly ILogger<NotificationService> _logger;
+        private readonly IEmailService _emailService;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IRazorViewRenderer _razorViewRenderer;
 
         public NotificationService(
             IOUWebContext context,
-            ILogger<NotificationService> logger)
+            ILogger<NotificationService> logger,
+            IEmailService emailService,
+            UserManager<ApplicationUser> userManager,
+            IRazorViewRenderer razorViewRenderer)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _emailService = emailService;
+            _userManager = userManager;
+            _razorViewRenderer = razorViewRenderer;
         }
 
         public async Task CreateNotification(
@@ -32,6 +43,35 @@ namespace IOU.Web.Services
             {
                 if (string.IsNullOrEmpty(userId))
                     throw new ArgumentException("User ID cannot be null or empty", nameof(userId));
+                try
+                {
+
+
+
+                    var user = await _userManager.FindByIdAsync(userId);
+                    if (user == null)
+                    {
+                        _logger.LogWarning("User not found: {UserId}", userId);
+                        return;
+                    }
+                    // Render the Razor view to HTML
+                    var htmlContent = await _razorViewRenderer.RenderViewToStringAsync(
+                        "/Views/Emails/NotificationEmail.cshtml",
+                        new NotificationEmailModel
+                        {
+                            Title = title,
+                            Message = message,
+                            ActionUrl = actionUrl
+                        }
+                    );
+
+                    // Send the email
+                    await _emailService.SendEmailAsync(user.Email, title, htmlContent);
+                }catch(Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "Failed to send email notification for user: {UserId}", userId);
+                    
+                }
 
                 var notification = new Notification
                 {
@@ -48,6 +88,8 @@ namespace IOU.Web.Services
 
                 _context.Notification.Add(notification);
                 await _context.SaveChangesAsync();
+
+                
 
                 _logger.LogInformation(
                     "Created notification: {NotificationId} for user: {UserId}, Type: {NotificationType}",
