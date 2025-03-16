@@ -1,0 +1,46 @@
+﻿@model List<Lender>
+
+@{
+    ViewData["Title"] = "Pending Lender Approvals";
+}
+
+<div class="admin-card">
+    <div class="admin-card__header">
+        <h2>Pending Lender Approvals</h2>
+    </div>
+    <div class="admin-card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Company</th>
+                    <th>Email</th>
+                    <th>Registration Number</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var lender in Model)
+                {
+                    <tr>
+                        <td>@lender.User.FullName</td>
+                        <td>@lender.CompanyName</td>
+                        <td>@lender.User.Email</td>
+                        <td>@lender.BusinessRegistrationNumber</td>
+                        <td>
+                            <a asp-action="Approve" asp-route-id="@lender.UserId" class="admin-btn-primary">Approve</a>
+                            <a asp-action="Reject" asp-route-id="@lender.UserId" class="btn btn-danger">Reject</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

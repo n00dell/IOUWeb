@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - IOU Admin</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav class="admin-sidebar">
+            <div class="admin-sidebar-header">
+                <h3 class="admin-sidebar-title">IOU Admin Panel</h3>
+            </div>
+            <ul class="list-unstyled components">
+                <partial name="~/Areas/Admin/Views/Shared/_AdminMenu.cshtml" />
+            </ul>
+        </nav>
+
+        <!-- Main Content Wrapper -->
+        <div id="content" class="d-flex flex-column min-vh-100">
+            <!-- Top Navigation -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+                <div class="container-fluid">
+                    <button type="button" id="sidebarCollapse" class="btn btn-primary">
+                        <i class="fas fa-bars"></i>
+                    </button>
+
+                    <div class="ms-auto d-flex align-items-center">
+                        <!-- Notification Dropdown -->
+                        <div class="dropdown me-3">
+                            <a href="#" class="nav-link position-relative" id="notificationDropdown"
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell"></i>
+                                <span class="badge bg-danger notification-count position-absolute top-0 start-100 translate-middle"
+                                      style="display: none; font-size: 0.65rem;">
+                                </span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end notification-dropdown shadow"
+                                 aria-labelledby="notificationDropdown">
+                                <div class="dropdown-header d-flex justify-content-between align-items-center p-3">
+                                    <span class="fw-bold">Notifications</span>
+                                    <a href="#" class="text-primary mark-all-read small">Mark all as read</a>
+                                </div>
+                                <div class="dropdown-divider m-0"></div>
+                                <div id="notificationList">
+                                    <!-- Notifications loaded via AJAX -->
+                                </div>
+                                <div class="dropdown-divider m-0"></div>
+                                <a class="dropdown-item text-center py-2" href="@Url.Action("Index", "Notifications")">
+                                    View All Notifications
+                                </a>
+                            </div>
+                        </div>
+                        <!-- User Profile Dropdown -->
+                        <div class="dropdown">
+                            <a href="#" class="nav-link dropdown-toggle d-flex align-items-center"
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle"></i>
+                                <span class="ms-2">@User.Identity.Name</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="@Url.Action("Profile", "AdminAccount", new { area = "Admin" })">
+                                        <i class="fas fa-user-cog me-2"></i> Profile
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <div class="container-fluid flex-grow-1 py-4">
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+        $(document).ready(function () {
+            // Sidebar toggle
+            $('#sidebarCollapse').click(function () {
+                $('#sidebar').toggleClass('active');
+                $(this).toggleClass('active');
+            });
+
+            // Notifications loading function
+            function loadNotifications() {
+                $.get('@Url.Action("GetLatestNotifications", "Notifications")', function (data) {
+                    var notificationHtml = '';
+
+                    if (data && data.length > 0) {
+                        data.forEach(function (notification) {
+                            notificationHtml += `
+                                <div class="dropdown-item notification-item ${notification.isRead ? '' : 'unread'}">
+                                    <div class="small text-muted">${notification.createdAt}</div>
+                                    <div class="fw-bold">${notification.title}</div>
+                                    <div class="small">${notification.message}</div>
+                                </div>`;
+                        });
+                    } else {
+                        notificationHtml = `
+                            <div class="dropdown-item text-center text-muted">
+                                No notifications
+                            </div>`;
+                    }
+
+                    $('#notificationList').html(notificationHtml);
+                });
+            }
+
+            // Update notification count
+            function updateNotificationCount() {
+                $.get('@Url.Action("GetUnreadCount", "Notifications")', function (data) {
+                    const badge = $('.notification-count');
+                    if (data.count > 0) {
+                        badge.text(data.count).show();
+                    } else {
+                        badge.hide();
+                    }
+                });
+            }
+
+            // Initial load
+            loadNotifications();
+            updateNotificationCount();
+
+            // Refresh every minute
+            setInterval(function () {
+                loadNotifications();
+                updateNotificationCount();
+            }, 60000);
+
+            // Mark all as read handler
+            $('.mark-all-read').click(function (e) {
+                e.preventDefault();
+                $.post('@Url.Action("MarkAllAsRead", "Notifications")', function () {
+                    loadNotifications();
+                    updateNotificationCount();
+                });
+            });
+        });
+    </script>
+</body>
+</html>

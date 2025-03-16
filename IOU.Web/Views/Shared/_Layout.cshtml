@@ -27,7 +27,7 @@
                     }
                     else if (User.IsInRole("Admin"))
                     {
-                        <partial name="_AdminMenu" />
+                        <partial name="~/Areas/Admin/Views/Shared/_AdminMenu.cshtml" />
                     }
                     else if (User.IsInRole("Lender")) 
                     {

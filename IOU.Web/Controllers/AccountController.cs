@@ -139,14 +139,17 @@ namespace IOU.Web.Controllers
                         Email = model.Email,
                         FullName = model.FullName,
                         UserType = UserType.Lender,
-                        IsActive = true,
+                        IsActive = false, // Set IsActive to false for new lenders
                         PhoneNumber = model.PhoneNumber
                     };
+
                     var result = await _userManager.CreateAsync(user, model.Password);
                     if (result.Succeeded)
                     {
-                        
+                        // Add the "Lender" claim
                         await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("UserType", "Lender"));
+
+                        // Assign the "Lender" role
                         var roleResult = await _userManager.AddToRoleAsync(user, "Lender");
                         if (!roleResult.Succeeded)
                         {
@@ -157,32 +160,43 @@ namespace IOU.Web.Controllers
                             }
                             throw new Exception("Role assignment failed");
                         }
+
+                        // Create the lender record
                         var lender = new Lender
                         {
                             UserId = user.Id,
                             CompanyName = model.CompanyName,
                             BusinessRegistrationNumber = model.BusinessRegistrationNumber
                         };
+
                         _context.Lender.Add(lender);
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
 
-                        await _signInManager.SignInAsync(user, isPersistent: false);
-                        return RedirectToAction("Dashboard", "Lender");
+                        // Do not sign in the user automatically
+                        // Instead, notify the user that their account is pending approval
+                        TempData["Message"] = "Your account is pending approval. You will be notified once it is approved.";
+                        return RedirectToAction("Login");
                     }
+
+                    // Handle user creation errors
                     foreach (var error in result.Errors)
                     {
                         ModelState.AddModelError(string.Empty, error.Description);
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    transaction.Rollback();
-                    throw;
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "An error occurred during lender registration.");
+                    ModelState.AddModelError(string.Empty, "An error occurred during registration. Please try again.");
                 }
             }
+
+            // If we got this far, something failed; redisplay the form
             return View(model);
         }
+
 
 
 
@@ -240,7 +254,7 @@ namespace IOU.Web.Controllers
                             case "Lender":
                                 return RedirectToAction("Dashboard", "Lender");
                             case "Admin":
-                                return RedirectToAction("Index", "Dashboard" , new { area = "Admin"});
+                                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
                             default:
                                 return RedirectToAction("Index", "Home");
                         }
@@ -264,6 +278,8 @@ namespace IOU.Web.Controllers
             await _signInManager.SignOutAsync();
             return RedirectToAction("Index", "Home");
         }
+
+
 
     }
 

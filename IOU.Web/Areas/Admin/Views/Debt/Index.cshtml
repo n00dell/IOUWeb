@@ -1,0 +1,47 @@
+﻿@model List<Debt>
+
+@{
+    ViewData["Title"] = "Debt Management";
+}
+
+<div class="admin-card">
+    <div class="admin-card__header">
+        <h2>Debt Management</h2>
+    </div>
+    <div class="admin-card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Lender</th>
+                    <th>Student</th>
+                    <th>Principal Amount</th>
+                    <th>Current Balance</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var debt in Model)
+                {
+                    <tr>
+                        <td>@debt.Lender.User.FullName</td>
+                        <td>@debt.Student.User.FullName</td>
+                        <td>@debt.PrincipalAmount.ToString("C")</td>
+                        <td>@debt.CurrentBalance.ToString("C")</td>
+                        <td>@debt.Status</td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@debt.Id" class="admin-btn-primary">Edit</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

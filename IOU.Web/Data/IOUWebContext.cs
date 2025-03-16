@@ -51,7 +51,12 @@ namespace IOU.Web.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-
+            // Configure cascade delete for Lender -> Debt relationship
+            modelBuilder.Entity<Lender>()
+                .HasMany(l => l.IssuedDebts)
+                .WithOne(d => d.Lender)
+                .HasForeignKey(d => d.LenderUserId)
+                .OnDelete(DeleteBehavior.Cascade); // Cascade delete
 
             modelBuilder.Entity<Student>()
         .HasOne(s => s.User)

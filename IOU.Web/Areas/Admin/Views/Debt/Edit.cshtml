@@ -1,0 +1,66 @@
+﻿@model IOU.Web.Models.ViewModels.EditDebtViewModel
+
+@{
+    ViewData["Title"] = "Edit Debt";
+}
+
+<div class="admin-card">
+    <div class="admin-card__header">
+        <h2>Edit Debt</h2>
+    </div>
+    <div class="admin-card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="LenderUserId" />
+            <input type="hidden" asp-for="StudentUserId" />
+
+            <div class="form-group">
+                <label asp-for="PrincipalAmount" class="control-label"></label>
+                <input asp-for="PrincipalAmount" class="form-control" />
+                <span asp-validation-for="PrincipalAmount" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="CurrentBalance" class="control-label"></label>
+                <input asp-for="CurrentBalance" class="form-control" />
+                <span asp-validation-for="CurrentBalance" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Purpose" class="control-label"></label>
+                <input asp-for="Purpose" class="form-control" />
+                <span asp-validation-for="Purpose" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="InterestRate" class="control-label"></label>
+                <input asp-for="InterestRate" class="form-control" />
+                <span asp-validation-for="InterestRate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Status" class="control-label"></label>
+                <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<DebtStatus>()"></select>
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Save" class="admin-btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
