@@ -1,6 +1,7 @@
 ﻿using IOU.Web.Data;
 using IOU.Web.Models;
 using IOU.Web.Models.ViewModels;
+using IOU.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,13 +13,15 @@ namespace IOU.Web.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IOUWebContext _context;
         private readonly ILogger<AccountController> _logger;
+        private readonly INotificationService _notificationService;
 
-        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IOUWebContext context, ILogger<AccountController> logger)
+        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IOUWebContext context, ILogger<AccountController> logger, INotificationService notificationService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _context = context;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         [HttpGet]
@@ -173,8 +176,24 @@ namespace IOU.Web.Controllers
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
 
+                        await _notificationService.CreateNotification(
+                            title: "New Lender Registration",
+                            message: $"A new lender, {model.FullName}, has registered and is awaiting approval.",
+                            type: NotificationType.LenderApproved,
+                            userId: user.Id
+                        );
+
+                        // Notify the admin
+                        await _notificationService.NotifyAdmin(
+                            title: "New Lender Registration",
+                            message: $"A new lender, {model.FullName}, has registered and is awaiting approval.",
+                            type: NotificationType.LenderApproved,
+                            relatedEntityId: user.Id,
+                            relatedEntityType: RelatedEntityType.Other,
+                            actionUrl: $"/Admin/Lender/Details/{user.Id}"
+                        );
+
                         // Do not sign in the user automatically
-                        // Instead, notify the user that their account is pending approval
                         TempData["Message"] = "Your account is pending approval. You will be notified once it is approved.";
                         return RedirectToAction("Login");
                     }

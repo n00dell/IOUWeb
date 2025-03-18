@@ -326,10 +326,10 @@ namespace IOU.Web.Controllers
                     DebtId = model.DebtId,
                     Status = DisputeStatus.Submitted,
                     CreatedDate = DateTime.Now,
-                    AdminNotes = string.Empty, // Fix for AdminNotes
+                    AdminNotes = string.Empty,
                     DisputeDetail = new DisputeDetail
                     {
-                        DisputeId = Guid.NewGuid().ToString(), // Ensure this matches the parent DisputeId
+                        DisputeId = Guid.NewGuid().ToString(),
                         Reason = model.Reason,
                         OtherReasonDetail = model.OtherReasonDetail,
                         DisputeExplanation = model.DisputeExplanation,
@@ -356,7 +356,7 @@ namespace IOU.Web.Controllers
                             ContentType = file.ContentType,
                             UploadDate = DateTime.Now,
                             Description = model.DocumentDescriptions?.FirstOrDefault(),
-                            DocumentType = "Dispute Evidence" // Required field
+                            DocumentType = "Dispute Evidence"
                         };
                         dispute.SupportingDocuments.Add(document);
                     }
@@ -367,13 +367,23 @@ namespace IOU.Web.Controllers
 
                 // Notify the lender
                 await _notificationService.CreateNotification(
-                    userId: debt.Lender.UserId, // Lender's user ID
+                    userId: debt.Lender.UserId,
                     title: "New Dispute Created",
                     message: $"Student {currentUser.FullName} has disputed debt {debt.Id}",
                     type: NotificationType.DisputeCreated,
                     relatedEntityId: dispute.DisputeId,
                     relatedEntityType: RelatedEntityType.Dispute,
                     actionUrl: $"/lender/disputes/{dispute.DisputeId}"
+                );
+
+                // Notify the admin
+                await _notificationService.NotifyAdmin(
+                    title: "New Dispute Created",
+                    message: $"Student {currentUser.FullName} has disputed debt {debt.Id}.",
+                    type: NotificationType.DisputeCreated,
+                    relatedEntityId: dispute.DisputeId,
+                    relatedEntityType: RelatedEntityType.Dispute,
+                    actionUrl: $"/Admin/Dispute/Details/{dispute.DisputeId}"
                 );
 
                 return RedirectToAction("DisputeConfirmation", new { disputeId = dispute.DisputeId });

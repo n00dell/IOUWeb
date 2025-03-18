@@ -1,0 +1,54 @@
+﻿@model Dispute
+
+<h1>Dispute @Model.DisputeId</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <h3>Dispute Details</h3>
+        <dl class="row">
+            <dt class="col-sm-4">Student:</dt>
+            <dd class="col-sm-8">@Model.User.FullName</dd>
+
+            <dt class="col-sm-4">Debt ID:</dt>
+            <dd class="col-sm-8">@Model.DebtId</dd>
+
+            <dt class="col-sm-4">Status:</dt>
+            <dd class="col-sm-8">@Model.Status</dd>
+
+            <dt class="col-sm-4">Reason:</dt>
+            <dd class="col-sm-8">@Model.DisputeDetail.Reason</dd>
+        </dl>
+    </div>
+
+    <div class="col-md-6">
+        <h3>Resolution Actions</h3>
+        <form asp-action="RespondToDispute" method="post">
+            <input type="hidden" name="id" value="@Model.DisputeId" />
+
+            <div class="form-group">
+                <label>Quick Actions</label>
+                <select name="status" class="form-control">
+                    <option value="@DisputeStatus.Approved">Approve Dispute</option>
+                    <option value="@DisputeStatus.Rejected">Reject Dispute</option>
+                    <option value="@DisputeStatus.EvidenceRequested">Request More Evidence</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Resolution Type (if approving)</label>
+                <select name="resolutionType" class="form-control">
+                    <option value="@ResolutionType.CompleteDebtCancellation">Full Cancellation</option>
+                    <option value="@ResolutionType.PartialReduction">Partial Reduction</option>
+                    <option value="@ResolutionType.PaymentPlanAdjustment">Payment Plan Adjustment</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Admin Notes</label>
+                <textarea name="adminNotes" class="form-control" rows="4"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit Resolution</button>
+        </form>
+    </div>
+</div>

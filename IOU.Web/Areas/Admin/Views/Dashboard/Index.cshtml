@@ -26,7 +26,7 @@
                         <h5 class="admin-card-title">Total Users</h5>
                         <div class="admin-summary__total">
                             <span>Total Registered</span>
-                            <span class="admin-summary__amount">254</span>
+                            <span class="admin-summary__amount">@Model.TotalUsers</span>
                         </div>
                     </div>
                 </div>
@@ -37,7 +37,7 @@
                         <h5 class="admin-card-title">Active Loans</h5>
                         <div class="admin-summary__total">
                             <span>Currently Active</span>
-                            <span class="admin-summary__amount">128</span>
+                            <span class="admin-summary__amount">@Model.ActiveLoans</span>
                         </div>
                     </div>
                 </div>
@@ -48,7 +48,7 @@
                         <h5 class="admin-card-title">Total Amount</h5>
                         <div class="admin-summary__total">
                             <span>Outstanding</span>
-                            <span class="admin-summary__amount">$25,400</span>
+                            <span class="admin-summary__amount">@Model.TotalAmount.ToString("C")</span>
                         </div>
                     </div>
                 </div>
@@ -59,7 +59,7 @@
                         <h5 class="admin-card-title">Overdue</h5>
                         <div class="admin-summary__total">
                             <span>Payment Overdue</span>
-                            <span class="admin-summary__amount">15</span>
+                            <span class="admin-summary__amount">@Model.OverdueLoans</span>
                         </div>
                     </div>
                 </div>
@@ -98,46 +98,39 @@
             <div class="col-lg-6 mb-4">
                 <div class="admin-card">
                     <div class="admin-card__header">
-                        <h5 class="mb-0">Recent Activity</h5>
+                        <h5 class="mb-0">Recent Notifications</h5>
                     </div>
                     <div class="admin-card-body">
                         <div class="admin-activities">
-                            <div class="admin-activities__item">
-                                <div class="admin-activities__icon">
-                                    <i class="fas fa-user-circle text-primary"></i>
+                            @foreach (var notification in Model.RecentNotifications)
+                            {
+                                <div class="admin-activities__item">
+                                    <div class="admin-activities__icon">
+                                        @switch (notification.Type)
+                                        {
+                                            case NotificationType.DebtCreated:
+                                                <i class="fas fa-file-invoice-dollar text-primary"></i>
+                                                break;
+                                            case NotificationType.PaymentReceived:
+                                                <i class="fas fa-money-bill-wave text-success"></i>
+                                                break;
+                                            case NotificationType.PaymentOverdue:
+                                                <i class="fas fa-exclamation-triangle text-warning"></i>
+                                                break;
+                                            case NotificationType.UserCreated:
+                                                <i class="fas fa-user-plus text-info"></i>
+                                                break;
+                                            default:
+                                                <i class="fas fa-bell text-secondary"></i>
+                                                break;
+                                        }
+                                    </div>
+                                    <div class="admin-activities__content">
+                                        <p class="admin-activities__text">@notification.Title: @notification.Message</p>
+                                        <small class="text-muted">@notification.CreatedAt.ToString("g")</small>
+                                    </div>
                                 </div>
-                                <div class="admin-activities__content">
-                                    <p class="admin-activities__text">New user registered: John Smith</p>
-                                    <small class="text-muted">2 hours ago</small>
-                                </div>
-                            </div>
-                            <div class="admin-activities__item">
-                                <div class="admin-activities__icon">
-                                    <i class="fas fa-money-bill-wave text-success"></i>
-                                </div>
-                                <div class="admin-activities__content">
-                                    <p class="admin-activities__text">Loan #1234 was approved</p>
-                                    <small class="text-muted">3 hours ago</small>
-                                </div>
-                            </div>
-                            <div class="admin-activities__item">
-                                <div class="admin-activities__icon">
-                                    <i class="fas fa-exclamation-triangle text-warning"></i>
-                                </div>
-                                <div class="admin-activities__content">
-                                    <p class="admin-activities__text">Payment overdue for Loan #5678</p>
-                                    <small class="text-muted">4 hours ago</small>
-                                </div>
-                            </div>
-                            <div class="admin-activities__item">
-                                <div class="admin-activities__icon">
-                                    <i class="fas fa-check-circle text-info"></i>
-                                </div>
-                                <div class="admin-activities__content">
-                                    <p class="admin-activities__text">Payment received for Loan #9012</p>
-                                    <small class="text-muted">5 hours ago</small>
-                                </div>
-                            </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -160,34 +153,45 @@
                                         <th>Loan ID</th>
                                         <th>Borrower</th>
                                         <th>Lender</th>
-                                        <th>Amount</th>
-                                        <th>Interest</th>
+                                        <th>Principal Amount</th>
+                                        <th>Current Balance</th>
+                                        <th>Interest Rate</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>#1001</td>
-                                        <td>Alice Johnson</td>
-                                        <td>Bank of ABC</td>
-                                        <td>$2,000</td>
-                                        <td>5%</td>
-                                        <td><span class="admin-status-badge admin-status-badge--active">Active</span></td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <button type="button" class="btn btn-sm admin-btn-primary">View</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <!-- Additional rows here -->
+                                    @foreach (var loan in Model.RecentLoans)
+                                    {
+                                        <tr>
+                                            <td>#@loan.Id</td>
+                                            <td>@loan.Student?.FullName</td> <!-- Assuming Student has a FullName property -->
+                                            <td>@loan.Lender?.FullName</td> <!-- Assuming Lender has a FullName property -->
+                                            <td>@loan.PrincipalAmount.ToString("C")</td>
+                                            <td>@loan.CurrentBalance.ToString("C")</td>
+                                            <td>@loan.InterestRate.ToString("0.00")%</td>
+                                            <td>
+                                                <span class="admin-status-badge
+                                            @(loan.Status == DebtStatus.Active ? "admin-status-badge--active" :
+                                              loan.Status == DebtStatus.Overdue ? "admin-status-badge--overdue" :
+                                              "admin-status-badge--pending")">
+                                                    @loan.Status
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-sm admin-btn-primary">View</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
                                 </tbody>
                             </table>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-3">
                             <div>
-                                <span class="text-muted">Showing 4 of 50 entries</span>
+                                <span class="text-muted">Showing @Model.RecentLoans.Count of @Model.RecentLoans.Count entries</span>
                             </div>
                             <nav aria-label="Page navigation">
                                 <ul class="pagination">

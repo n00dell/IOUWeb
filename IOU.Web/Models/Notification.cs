@@ -50,7 +50,12 @@ namespace IOU.Web.Models
         LateFeeAdded,
         EvidenceSubmitted,
         General,
-        DisputeCreated
+        DisputeCreated,
+        DisputeResolved,
+        LenderApproved, 
+        LenderRejected, 
+        UserCreated,    
+        PaymentMade     
     }
     public enum RelatedEntityType
     {

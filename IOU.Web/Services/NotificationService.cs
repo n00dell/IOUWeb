@@ -318,5 +318,76 @@ namespace IOU.Web.Services
                 throw;
             }
         }
+
+        public async Task NotifyAdmin(string title, string message, NotificationType type, string? relatedEntityId = null, RelatedEntityType? relatedEntityType = null, string? actionUrl = null)
+        {
+            try
+            {
+                // Fetch all admin users
+                var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
+                if (!adminUsers.Any())
+                {
+                    _logger.LogWarning("No admin users found to send notifications to.");
+                    return;
+                }
+
+                // Create notifications for each admin
+                foreach (var admin in adminUsers)
+                {
+                    await CreateNotification(
+                        admin.Id,
+                        title,
+                        message,
+                        type,
+                        relatedEntityId,
+                        relatedEntityType,
+                        actionUrl
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending admin notifications.");
+                throw;
+            }
+        }
+        public async Task<(List<Notification> Items, int TotalCount)> GetAdminNotificationsPaged(
+    int page = 1,
+    int pageSize = 20,
+    NotificationType? type = null,
+    bool? isRead = null)
+        {
+            try
+            {
+                var query = _context.Notification
+                    .Where(n => !n.IsDeleted);
+
+                // Apply filters
+                if (type.HasValue)
+                {
+                    query = query.Where(n => n.Type == type.Value);
+                }
+
+                if (isRead.HasValue)
+                {
+                    query = query.Where(n => n.IsRead == isRead.Value);
+                }
+
+                var totalCount = await query.CountAsync();
+
+                var items = await query
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                return (items, totalCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching admin notifications.");
+                throw;
+            }
+        }
     }
 }

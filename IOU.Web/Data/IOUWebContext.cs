@@ -30,6 +30,7 @@ namespace IOU.Web.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
             modelBuilder.Model.GetEntityTypes()
        .Where(e => e.ClrType == typeof(Debt))
        .ToList()
@@ -105,6 +106,22 @@ namespace IOU.Web.Data
                 entity.Property(d => d.AccumulatedInterest).HasPrecision(18, 2);
                 entity.Property(d => d.LateFeeAmount).HasPrecision(18, 2);
                 entity.Property(d => d.AccumulatedLateFees).HasPrecision(18, 2);
+            });
+            modelBuilder.Entity<Dispute>(entity =>
+            {
+                entity.HasMany(d => d.SupportingDocuments)
+                      .WithOne(s => s.Dispute) // Use the navigation property in SupportingDocument
+                      .HasForeignKey(s => s.DisputeId) // Use the existing DisputeId property
+                      .OnDelete(DeleteBehavior.Cascade); // Cascade delete
+            });
+
+            // Configure Dispute -> DebtEvidence relationship
+            modelBuilder.Entity<Dispute>(entity =>
+            {
+                entity.HasMany(d => d.LenderEvidence)
+                      .WithOne(e => e.Dispute) // Use the navigation property in DebtEvidence
+                      .HasForeignKey(e => e.DisputeId) // Use the existing DisputeId property
+                      .OnDelete(DeleteBehavior.Restrict); // Restrict delete to avoid multiple cascade paths
             });
 
             // Configure decimal precision for DisputeDetail

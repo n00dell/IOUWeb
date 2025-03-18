@@ -15,5 +15,11 @@ namespace IOU.Web.Services.Interfaces
         Task MarkAllAsRead(string userId);
         Task DeleteNotification(string notificationId);
         Task CleanupOldNotifications(int daysToKeep = 30);
+        Task NotifyAdmin(string title, string message, NotificationType type, string? relatedEntityId = null, RelatedEntityType? relatedEntityType = null, string? actionUrl = null);
+        Task<(List<Notification> Items, int TotalCount)> GetAdminNotificationsPaged(
+   int page = 1,
+   int pageSize = 20,
+   NotificationType? type = null,
+   bool? isRead = null);
     }
 }

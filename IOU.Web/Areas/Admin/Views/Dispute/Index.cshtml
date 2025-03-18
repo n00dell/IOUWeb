@@ -1,0 +1,29 @@
+﻿@model IEnumerable<Dispute>
+
+<h1>Dispute Management</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Created</th>
+            <th>Student</th>
+            <th>Debt ID</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var dispute in Model)
+        {
+            <tr>
+                <td>@dispute.CreatedDate.ToString("d")</td>
+                <td>@dispute.User.FullName</td>
+                <td>@dispute.DebtId</td>
+                <td>@dispute.Status</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@dispute.DisputeId" class="btn btn-primary">Review</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

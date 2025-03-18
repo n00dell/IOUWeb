@@ -113,7 +113,50 @@ namespace IOU.Web.Areas.Admin.Controllers
             // If the model state is invalid, reload the related entities for the view
             return View(model);
         }
+        // GET: Admin/Debt/Delete/{id}
+        public async Task<IActionResult> Delete(string id)
+        {
+            var debt = await _context.Debt
+                .Include(d => d.Lender)
+                    .ThenInclude(l => l.User)
+                .Include(d => d.Student)
+                    .ThenInclude(s => s.User)
+                .Include(d => d.Disputes) // Include related disputes
+                .FirstOrDefaultAsync(d => d.Id == id);
 
+            if (debt == null)
+            {
+                return NotFound();
+            }
+
+            return View(debt);
+        }
+
+        // POST: Admin/Debt/Delete/{id}
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(string id)
+        {
+            var debt = await _context.Debt
+                .Include(d => d.Disputes) // Include related disputes
+                .FirstOrDefaultAsync(d => d.Id == id);
+
+            if (debt == null)
+            {
+                return NotFound();
+            }
+
+            // Remove related disputes
+            _context.Dispute.RemoveRange(debt.Disputes);
+
+            // Remove the debt
+            _context.Debt.Remove(debt);
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Debt deleted successfully.";
+            return RedirectToAction(nameof(Index));
+        }
         private bool DebtExists(string id)
         {
             return _context.Debt.Any(e => e.Id == id);

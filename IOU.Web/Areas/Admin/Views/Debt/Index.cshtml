@@ -38,6 +38,7 @@
                         <td>@debt.Status</td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@debt.Id" class="admin-btn-primary">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@debt.Id" class="btn btn-danger">Delete</a>
                         </td>
                     </tr>
                 }

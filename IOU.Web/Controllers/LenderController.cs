@@ -137,7 +137,7 @@ namespace IOU.Web.Controllers
 
                 await _paymentService.GeneratePaymentScheduleAsync(paymentRequest);
 
-                // Updated notification creation with lender's name
+                // Notify the student
                 await _notificationService.CreateNotification(
                     userId: student.UserId,
                     title: "New Debt Created",
@@ -149,8 +149,18 @@ namespace IOU.Web.Controllers
                     actionUrl: $"/Student/ReviewDebt/{debt.Id}"
                 );
 
+                // Notify the admin
+                await _notificationService.NotifyAdmin(
+                    title: "New Debt Created",
+                    message: $"Lender {currentUser.FullName} has created a new debt of {model.PrincipalAmount:C} for student {student.User.FullName}.",
+                    type: NotificationType.DebtCreated,
+                    relatedEntityId: debt.Id,
+                    relatedEntityType: RelatedEntityType.Debt,
+                    actionUrl: $"/Admin/Debt/Details/{debt.Id}"
+                );
+
                 TempData["SuccessMessage"] = "Debt created successfully.";
-                return RedirectToAction(nameof(Dashboard)); // Fixed: using correct action name
+                return RedirectToAction(nameof(Dashboard));
             }
             catch (Exception ex)
             {
@@ -413,6 +423,8 @@ namespace IOU.Web.Controllers
 
             await _context.SaveChangesAsync();
             var studentUserId = dispute.Debt.StudentUserId;
+
+            // Notify the student
             await _notificationService.CreateNotification(
                 userId: studentUserId,
                 title: "New Evidence Submitted",
@@ -422,6 +434,17 @@ namespace IOU.Web.Controllers
                 relatedEntityType: RelatedEntityType.Dispute,
                 actionUrl: $"/Student/DisputeDetails/{disputeId}"
             );
+
+            // Notify the admin
+            await _notificationService.NotifyAdmin(
+                title: "New Evidence Submitted",
+                message: $"Lender {user.FullName} has submitted new evidence for Dispute #{disputeId}.",
+                type: NotificationType.EvidenceSubmitted,
+                relatedEntityId: disputeId,
+                relatedEntityType: RelatedEntityType.Dispute,
+                actionUrl: $"/Admin/Dispute/Details/{disputeId}"
+            );
+
             return View("EvidenceSubmissionSuccess", disputeId);
         }
     }
