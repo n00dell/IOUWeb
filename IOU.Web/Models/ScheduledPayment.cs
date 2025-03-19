@@ -17,15 +17,10 @@
         public decimal LateFeesPortion { get; set; }
 
         // Status
-        public PaymentStatus Status { get; set; }
+        public PaymentStatus Status { get; set; } = PaymentStatus.Scheduled;
 
-        // Tracking
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public DateTime? UpdatedAt { get; set; }
-
-        // Payment Method (if paid)
-        public string? PaymentMethodId { get; set; }
-        public string? TransactionReference { get; set; }
+        public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+       
     }
 
     public enum PaymentStatus
@@ -34,6 +29,7 @@
         Pending,
         Paid,
         Overdue,
-        Cancelled
+        Cancelled,
+        Failed
     }
 }

@@ -4,7 +4,8 @@ using IOU.Web.Services.Interfaces;
 using IOU.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation; // Add this for runtime compilation
+using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation;
+using IOU.Web.Config; // Add this for runtime compilation
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +59,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISchedulePaymentService, ScheduledPaymentService>();
 builder.Services.AddScoped<IRazorViewRenderer, RazorViewRenderer>();
 builder.Services.AddScoped<IEmailService, MailJetEmailService>(); // Register IEmailService
+builder.Services.Configure<MpesaConfiguration>(builder.Configuration.GetSection("MpesaConfiguration"));
 
 // Add Razor runtime compilation
 builder.Services.AddMvc().AddRazorRuntimeCompilation();

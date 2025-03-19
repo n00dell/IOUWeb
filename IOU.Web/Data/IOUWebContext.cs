@@ -27,6 +27,8 @@ namespace IOU.Web.Data
 
         public DbSet<DebtEvidence> DebtEvidence { get; set; }
 
+        public DbSet<Payment> Payments { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -38,6 +40,27 @@ namespace IOU.Web.Data
            .Where(p => p.ClrType == typeof(decimal))
            .ToList()
            .ForEach(p => p.SetPrecision(18)));
+
+            // Debt -> ScheduledPayments (installments)
+            modelBuilder.Entity<Debt>()
+                .HasMany(d => d.ScheduledPayments)
+                .WithOne(p => p.Debt)
+                .HasForeignKey(p => p.DebtId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Debt -> Payments (transactions)
+            modelBuilder.Entity<Debt>()
+                .HasMany(d => d.Payments)
+                .WithOne(p => p.Debt)
+                .HasForeignKey(p => p.DebtId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ScheduledPayment -> Payments (installment payments)
+            modelBuilder.Entity<ScheduledPayment>()
+                .HasMany(p => p.Payments)
+                .WithOne(p => p.ScheduledPayment)
+                .HasForeignKey(p => p.ScheduledPaymentId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
 
             modelBuilder.Entity<Debt>(entity =>
             {

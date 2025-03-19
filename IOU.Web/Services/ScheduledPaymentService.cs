@@ -59,7 +59,6 @@ namespace IOU.Web.Services
                     DueDate = currentDate,
                     Status = PaymentStatus.Scheduled,
                     PrincipalPortion = paymentAmount, // Will be recalculated when payment is processed
-                    CreatedAt = DateTime.UtcNow
                 };
 
                 payments.Add(payment);
@@ -87,12 +86,10 @@ namespace IOU.Web.Services
 
             payment.Status = PaymentStatus.Paid;
             payment.PaymentDate = DateTime.UtcNow;
-            payment.PaymentMethodId = paymentMethodId;
             payment.Amount = amount;
             payment.PrincipalPortion = principalPortion;
             payment.InterestPortion = interestPortion;
             payment.LateFeesPortion = lateFeesPortion;
-            payment.UpdatedAt = DateTime.UtcNow;
 
             // Update debt amounts
             payment.Debt.PrincipalAmount -= principalPortion;

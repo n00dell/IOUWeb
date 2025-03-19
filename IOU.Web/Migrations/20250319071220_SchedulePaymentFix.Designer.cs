@@ -4,6 +4,7 @@ using IOU.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOU.Web.Migrations
 {
     [DbContext(typeof(IOUWebContext))]
-    partial class IOUWebContextModelSnapshot : ModelSnapshot
+    [Migration("20250319071220_SchedulePaymentFix")]
+    partial class SchedulePaymentFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -413,9 +416,6 @@ namespace IOU.Web.Migrations
 
                     b.Property<string>("ScheduledPaymentId")
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

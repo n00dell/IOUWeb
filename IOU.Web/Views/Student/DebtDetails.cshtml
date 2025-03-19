@@ -13,8 +13,11 @@
             <a asp-action="CreateDispute" asp-controller="Student" asp-route-debtId="@Model.Debt.Id" class="btn btn-danger ms-2">
                 Dispute This Debt
             </a>
+            <!-- Add the Pay button here -->
+            <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#payModal">
+                Pay via MPESA
+            </button>
         </div>
-    </div>
     </div>
 
     <!-- Summary Cards -->
@@ -105,7 +108,7 @@
                                         <div class="student-debt-card__label">@payment.DueDate.ToString("d")</div>
                                         <div class="student-debt-card__value">@payment.Amount.ToString("C")</div>
                                     </div>
-                                    <span class="student-status-badge student-status-badge--overdue">
+                                    <span class="student-status-badge student-status-badge--@payment.Status.ToString().ToLower()">
                                         @payment.Status
                                     </span>
                                 </div>
@@ -193,3 +196,64 @@
         </div>
     </div>
 </div>
+
+<!-- Pay Modal -->
+<div class="modal fade" id="payModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Make Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="mpesaPaymentForm">
+                    <input type="hidden" id="debtId" value="@Model.Debt.Id" />
+                    <div class="mb-3">
+                        <label for="amount">Amount</label>
+                        <input type="number" class="form-control" id="amount" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" class="form-control" id="phone" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('mpesaPaymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const debtId = document.getElementById('debtId').value;
+            const amount = document.getElementById('amount').value;
+            const phone = document.getElementById('phone').value;
+
+            // Call your MPESA API here to initiate payment
+            const response = await fetch('/Student/MakeCustomPayment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({
+                    debtId,
+                    amount,
+                    phoneNumber: phone,
+                    mpesaTransactionId: "ws_CO_19032025122302190708374149", // Replace with actual ID
+                    mpesaReceiptNumber: "MPESA_RECEIPT"   // Replace with actual receipt
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert('Payment processed successfully!');
+                window.location.reload(); // Refresh the page to update the balance
+            } else {
+                alert('Payment failed: ' + result.message);
+            }
+        });
+    </script>
+}

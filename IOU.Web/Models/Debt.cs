@@ -52,6 +52,8 @@ namespace IOU.Web.Models
         [ForeignKey("LenderUserId")]
         public virtual Lender Lender { get; set; }
         public virtual ICollection<Dispute> Disputes { get; set; }
+        public virtual ICollection<Payment> Payments { get; set; }
+        public virtual ICollection<ScheduledPayment> ScheduledPayments { get; set; } = new List<ScheduledPayment>();
     }
 
     public enum DebtStatus

@@ -457,5 +457,47 @@ namespace IOU.Web.Controllers
 
             return View(viewModel);
         }
+
+        [Authorize(Roles = "Student")]
+        [HttpPost("MakeCustomPayment")]
+        public async Task<IActionResult> MakeCustomPayment(
+    string debtId,
+    decimal amount,
+    string phoneNumber,
+    string mpesaTransactionId,
+    string mpesaReceiptNumber)
+        {
+            try
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                var debt = await _context.Debt
+                    .Include(d => d.Student)
+                    .FirstOrDefaultAsync(d => d.Id == debtId && d.StudentUserId == currentUser.Id);
+
+                if (debt == null) return NotFound("Debt not found.");
+
+                // Create a payment record
+                var payment = new Payment
+                {
+                    DebtId = debtId,
+                    Amount = amount,
+                    PhoneNumber = phoneNumber,
+                    MpesaTransactionId = mpesaTransactionId,
+                    MpesaReceiptNumber = mpesaReceiptNumber
+                };
+
+                //_context.Payments.Add(payment);
+                debt.CurrentBalance -= amount; // Update debt balance
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, message = "Payment processed!" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing custom payment.");
+                return StatusCode(500, new { success = false, message = "Payment failed." });
+            }
+        }
     }
-}
+
+ }
