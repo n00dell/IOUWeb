@@ -225,35 +225,9 @@
 
 @section Scripts {
     <script>
-        document.getElementById('mpesaPaymentForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const debtId = document.getElementById('debtId').value;
-            const amount = document.getElementById('amount').value;
-            const phone = document.getElementById('phone').value;
-
-            // Call your MPESA API here to initiate payment
-            const response = await fetch('/Student/MakeCustomPayment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-                },
-                body: JSON.stringify({
-                    debtId,
-                    amount,
-                    phoneNumber: phone,
-                    mpesaTransactionId: "ws_CO_19032025122302190708374149", // Replace with actual ID
-                    mpesaReceiptNumber: "MPESA_RECEIPT"   // Replace with actual receipt
-                })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                alert('Payment processed successfully!');
-                window.location.reload(); // Refresh the page to update the balance
-            } else {
-                alert('Payment failed: ' + result.message);
-            }
+                document.addEventListener('DOMContentLoaded', function() {
+            // Initialize payment manager
+            new PaymentManager();
         });
     </script>
 }

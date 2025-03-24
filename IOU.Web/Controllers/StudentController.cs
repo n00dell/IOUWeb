@@ -459,6 +459,7 @@ namespace IOU.Web.Controllers
         }
 
         [Authorize(Roles = "Student")]
+        [ValidateAntiForgeryToken]
         [HttpPost("MakeCustomPayment")]
         public async Task<IActionResult> MakeCustomPayment(
     string debtId,
@@ -483,10 +484,11 @@ namespace IOU.Web.Controllers
                     Amount = amount,
                     PhoneNumber = phoneNumber,
                     MpesaTransactionId = mpesaTransactionId,
-                    MpesaReceiptNumber = mpesaReceiptNumber
+                    MpesaReceiptNumber = mpesaReceiptNumber,
+                    Status = PaymentStatus.Pending
                 };
 
-                //_context.Payments.Add(payment);
+                _context.Payments.Add(payment);
                 debt.CurrentBalance -= amount; // Update debt balance
                 await _context.SaveChangesAsync();
 
@@ -497,6 +499,60 @@ namespace IOU.Web.Controllers
                 _logger.LogError(ex, "Error processing custom payment.");
                 return StatusCode(500, new { success = false, message = "Payment failed." });
             }
+
+        }
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> Reports(string reportType)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var student = await _context.Student
+                .FirstOrDefaultAsync(s => s.UserId == currentUser.Id);
+
+            if (student == null)
+                return RedirectToAction("Error", "Home");
+
+            var viewModel = new StudentReportsViewModel
+            {
+                ReportType = reportType,
+                Student = student
+            };
+
+            switch (reportType)
+            {
+                case "TotalDebtOverview":
+                    viewModel.Data = await GetTotalDebtOverview(student.UserId);
+                    break;
+                case "PaymentHistory":
+                    viewModel.Data = await GetPaymentHistory(student.UserId);
+                    break;
+                case "UpcomingPayments":
+                    viewModel.Data = await GetUpcomingPayments(student.UserId);
+                    break;
+                // Add more cases as needed
+                default:
+                    viewModel.Data = new List<object>();
+                    break;
+            }
+
+            return View(viewModel);
+        }
+
+        private async Task<List<object>> GetTotalDebtOverview(string userId)
+        {
+            // Logic to get total debt overview
+            return new List<object>();
+        }
+
+        private async Task<List<object>> GetPaymentHistory(string userId)
+        {
+            // Logic to get payment history
+            return new List<object>();
+        }
+
+        private async Task<List<object>> GetUpcomingPayments(string userId)
+        {
+            // Logic to get upcoming payments
+            return new List<object>();
         }
     }
 

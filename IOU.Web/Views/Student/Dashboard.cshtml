@@ -14,6 +14,22 @@
             </div>
         </div>
     </div>
+
+    <!-- Report Selection Dropdown -->
+    <div class="mb-4">
+        <select id="reportType" class="form-control">
+            <option value="TotalDebtOverview">Total Debt Overview</option>
+            <option value="PaymentHistory">Payment History</option>
+            <option value="UpcomingPayments">Upcoming Payments</option>
+            <!-- Add more options as needed -->
+        </select>
+    </div>
+
+    <!-- Report Display Section -->
+    <div id="reportDisplay">
+        <!-- Report content will be loaded here -->
+    </div>
+
     <!-- Debts Section -->
     <div class="debts-container">
         @if (Model.DebtWithNextPayments.Any())
@@ -79,3 +95,21 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#reportType').change(function() {
+                var reportType = $(this).val();
+                $.ajax({
+                    url: '@Url.Action("Reports", "Student")',
+                    type: 'GET',
+                    data: { reportType: reportType },
+                    success: function(result) {
+                        $('#reportDisplay').html(result);
+                    }
+                });
+            });
+        });
+    </script>
+}

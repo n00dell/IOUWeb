@@ -33,6 +33,19 @@ namespace IOU.Web.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // In your DbContext's OnModelCreating
+            modelBuilder.Entity<Payment>()
+                .Property(p => p.Status)
+                .HasDefaultValue(PaymentStatus.Pending);
+
+            modelBuilder.Entity<Payment>()
+    .HasIndex(p => new { p.Status, p.CompletedAt });
+
+            // In your DbContext's OnModelCreating
+            modelBuilder.Entity<Payment>()
+                .HasIndex(p => p.CheckoutRequestID)
+                .IsUnique();
+
             modelBuilder.Model.GetEntityTypes()
        .Where(e => e.ClrType == typeof(Debt))
        .ToList()

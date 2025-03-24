@@ -60,6 +60,8 @@ builder.Services.AddScoped<ISchedulePaymentService, ScheduledPaymentService>();
 builder.Services.AddScoped<IRazorViewRenderer, RazorViewRenderer>();
 builder.Services.AddScoped<IEmailService, MailJetEmailService>(); // Register IEmailService
 builder.Services.Configure<MpesaConfiguration>(builder.Configuration.GetSection("MpesaConfiguration"));
+builder.Services.AddScoped<MpesaAuthService>();
+builder.Services.AddScoped<MpesaPaymentService>();
 
 // Add Razor runtime compilation
 builder.Services.AddMvc().AddRazorRuntimeCompilation();
