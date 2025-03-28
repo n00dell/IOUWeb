@@ -13,10 +13,6 @@
             <a asp-action="CreateDispute" asp-controller="Student" asp-route-debtId="@Model.Debt.Id" class="btn btn-danger ms-2">
                 Dispute This Debt
             </a>
-            <!-- Add the Pay button here -->
-            <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#payModal">
-                Pay via MPESA
-            </button>
         </div>
     </div>
 
@@ -163,19 +159,18 @@
         </div>
         <div class="p-3">
             <div class="table-responsive">
+                <!-- In your payment schedule table -->
                 <table class="table table-hover">
                     <thead>
                         <tr>
                             <th>Due Date</th>
                             <th>Amount</th>
                             <th>Status</th>
-                            <th>Principal</th>
-                            <th>Interest</th>
-                            <th>Fees</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var payment in Model.ScheduledPayments)
+                        @foreach (var payment in Model.ScheduledPayments.OrderBy(p => p.DueDate))
                         {
                             <tr>
                                 <td>@payment.DueDate.ToString("d")</td>
@@ -185,9 +180,18 @@
                                         @payment.Status
                                     </span>
                                 </td>
-                                <td>@payment.PrincipalPortion.ToString("C")</td>
-                                <td>@payment.InterestPortion.ToString("C")</td>
-                                <td>@payment.LateFeesPortion.ToString("C")</td>
+                                <td>
+                                    @if (payment == Model.ScheduledPayments.OrderBy(p => p.DueDate).FirstOrDefault(p => p.Status != ScheduledPaymentStatus.Paid))
+                                    {
+                                        <button type="button" class="btn btn-sm btn-success"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#payModal"
+                                                data-payment-id="@payment.Id"
+                                                data-amount="@payment.Amount">
+                                            Pay
+                                        </button>
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -207,6 +211,7 @@
             </div>
             <div class="modal-body">
                 <form id="mpesaPaymentForm">
+                    @Html.AntiForgeryToken()
                     <input type="hidden" id="debtId" value="@Model.Debt.Id" />
                     <div class="mb-3">
                         <label for="amount">Amount</label>
@@ -214,7 +219,8 @@
                     </div>
                     <div class="mb-3">
                         <label for="phone">Phone Number</label>
-                        <input type="tel" class="form-control" id="phone" required />
+                        <input type="tel" class="form-control" id="phone" required
+                               pattern="^(\+?254|0)?[7][0-9]{8}$" />
                     </div>
                     <button type="submit" class="btn btn-primary">Submit</button>
                 </form>
@@ -225,7 +231,16 @@
 
 @section Scripts {
     <script>
-                document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle pay button clicks for specific payments
+            $(document).on('click', '[data-bs-target="#payModal"]', function() {
+                const paymentId = $(this).data('payment-id');
+                const amount = parseFloat($(this).data('amount'));
+
+                $('#debtId').val('@Model.Debt.Id'); // Use the debt ID from model
+                $('#amount').val(amount.toFixed(2));
+            });
+
             // Initialize payment manager
             new PaymentManager();
         });

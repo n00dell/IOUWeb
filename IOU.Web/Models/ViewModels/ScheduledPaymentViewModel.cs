@@ -10,8 +10,8 @@
         public decimal LateFeesPortion { get; set; }
         public DateTime DueDate { get; set; }
         public DateTime? PaymentDate { get; set; }
-        public PaymentStatus Status { get; set; }
+        public ScheduledPaymentStatus Status { get; set; }
         public string StatusDisplay => Status.ToString();
-        public bool IsOverdue => DueDate < DateTime.Now && Status != PaymentStatus.Paid;
+        public bool IsOverdue => DueDate < DateTime.Now && Status != ScheduledPaymentStatus.Paid;
     }
 }

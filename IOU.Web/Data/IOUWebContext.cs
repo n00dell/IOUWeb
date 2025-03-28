@@ -36,7 +36,7 @@ namespace IOU.Web.Data
             // In your DbContext's OnModelCreating
             modelBuilder.Entity<Payment>()
                 .Property(p => p.Status)
-                .HasDefaultValue(PaymentStatus.Pending);
+                .HasDefaultValue(PaymentTransactionStatus.Pending);
 
             modelBuilder.Entity<Payment>()
     .HasIndex(p => new { p.Status, p.CompletedAt });

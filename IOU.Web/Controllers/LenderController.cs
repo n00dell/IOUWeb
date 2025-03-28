@@ -82,8 +82,7 @@ namespace IOU.Web.Controllers
                 DueDate = DateTime.Today.AddMonths(1),
                 GracePeriodDays = 7,
                 FirstPaymentDate = DateTime.Today.AddDays(7),
-                PaymentFrequency = PaymentFrequency.Monthly,
-                NumberOfPayments = 12
+                PaymentFrequency = PaymentFrequency.Monthly
             };
 
             return View(viewModel);
@@ -91,83 +90,121 @@ namespace IOU.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Lender")]
         public async Task<IActionResult> CreateDebt(CreateDebtViewModel model)
         {
-            if (!ModelState.IsValid)
-                return View(model);
+            if (!ModelState.IsValid) return View(model);
 
-            if (!ValidateDebtCreation(model, out string errorMessage))
+            if (!ValidateDebtCreation(model, out string error))
             {
-                ModelState.AddModelError("", errorMessage);
+                ModelState.AddModelError("", error);
                 return View(model);
             }
 
             try
             {
-                var (currentUser, lender) = await GetCurrentLender();
-                if (lender == null)
-                {
-                    ModelState.AddModelError("", "Lender profile not found.");
-                    return View(model);
-                }
+                var (user, lender) = await GetCurrentLender();
+                if (lender == null) return Forbid();
 
                 var student = await GetStudent(model.StudentEmail);
                 if (student == null)
                 {
-                    ModelState.AddModelError("StudentEmail", "Student not found.");
+                    ModelState.AddModelError("StudentEmail", "Student not found");
                     return View(model);
                 }
 
-                var debt = CreateDebtEntity(model, lender, student);
+                var debt = new Debt
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    LenderUserId = lender.UserId,
+                    StudentUserId = student.UserId,
+                    PrincipalAmount = model.PrincipalAmount,
+                    CurrentBalance = model.PrincipalAmount,
+                    InterestRate = model.InterestRate,
+                    InterestType = model.InterestType,
+                    CalculationPeriod = model.CalculationPeriod,
+                    DebtType = model.DebtType,
+                    DueDate = model.DueDate,
+                    GracePeriodDays = model.GracePeriodDays,
+                    LateFeeAmount = model.LateFeeAmount,
+                    Purpose = model.Purpose,
+                    Status = DebtStatus.Pending,
+                    DateIssued = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    LastInterestCalculationDate = DateTime.UtcNow
+                };
 
-                // First save the debt to get a valid ID
                 _context.Debt.Add(debt);
                 await _context.SaveChangesAsync();
 
-                // Then generate payment schedule
-                var paymentRequest = new CreateScheduledPaymentsRequest
+
+                await _paymentService.GeneratePaymentScheduleAsync(new CreateScheduledPaymentsRequest
                 {
                     DebtId = debt.Id,
-                    NumberOfPayments = model.NumberOfPayments,
                     FirstPaymentDate = model.FirstPaymentDate,
                     Frequency = model.PaymentFrequency,
+                    NumberOfPayments = model.NumberOfPayments,
                     IncludeInterestInCalculation = true
-                };
+                });
 
-                await _paymentService.GeneratePaymentScheduleAsync(paymentRequest);
-
-                // Notify the student
-                await _notificationService.CreateNotification(
-                    userId: student.UserId,
-                    title: "New Debt Created",
-                    message: $"{currentUser.FullName} has created a new {model.DebtType} debt of {model.PrincipalAmount:C}. " +
-                            $"Due date: {model.DueDate:d}. Please review and approve.",
-                    type: NotificationType.DebtCreated,
-                    relatedEntityId: debt.Id,
-                    relatedEntityType: RelatedEntityType.Debt,
-                    actionUrl: $"/Student/ReviewDebt/{debt.Id}"
-                );
-
-                // Notify the admin
-                await _notificationService.NotifyAdmin(
-                    title: "New Debt Created",
-                    message: $"Lender {currentUser.FullName} has created a new debt of {model.PrincipalAmount:C} for student {student.User.FullName}.",
-                    type: NotificationType.DebtCreated,
-                    relatedEntityId: debt.Id,
-                    relatedEntityType: RelatedEntityType.Debt,
-                    actionUrl: $"/Admin/Debt/Details/{debt.Id}"
-                );
-
-                TempData["SuccessMessage"] = "Debt created successfully.";
+                await NotifyDebtCreation(debt, user, student);
+                TempData["SuccessMessage"] = "Debt created successfully";
                 return RedirectToAction(nameof(Dashboard));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating debt for student {StudentEmail}", model.StudentEmail);
+                _logger.LogError(ex, "Error creating debt");
                 ModelState.AddModelError("", "Error creating debt: " + ex.Message);
                 return View(model);
             }
+        }
+        private async Task NotifyDebtCreation(Debt debt, ApplicationUser lenderUser, Student student)
+        {
+            // Notify the student
+            await _notificationService.CreateNotification(
+                userId: student.UserId,
+                title: "New Debt Created",
+                message: $"{lenderUser.FullName} has created a new {debt.DebtType} debt of {debt.PrincipalAmount:C}. " +
+                        $"Due date: {debt.DueDate:d}. Please review and approve.",
+                type: NotificationType.DebtCreated,
+                relatedEntityId: debt.Id,
+                relatedEntityType: RelatedEntityType.Debt,
+                actionUrl: $"/Student/ReviewDebt/{debt.Id}"
+            );
+
+            // Notify the admin
+            await _notificationService.NotifyAdmin(
+                title: "New Debt Created",
+                message: $"Lender {lenderUser.FullName} has created a new debt of {debt.PrincipalAmount:C} for student {student.User.FullName}.",
+                type: NotificationType.DebtCreated,
+                relatedEntityId: debt.Id,
+                relatedEntityType: RelatedEntityType.Debt,
+                actionUrl: $"/Admin/Debt/Details/{debt.Id}"
+            );
+        }
+        private bool ValidateDebtCreation(CreateDebtViewModel model, out string error)
+        {
+            error = null;
+
+            if (model.DueDate <= DateTime.Today)
+                error = "Due date must be in the future";
+            else if (model.FirstPaymentDate >= model.DueDate)
+                error = "First payment must be before due date";
+            else if (model.NumberOfPayments.HasValue && model.NumberOfPayments < 1)
+                error = "Number of payments must be at least 1";
+
+            return error == null;
+        }
+
+        private DateTime GetLastPaymentDate(DateTime firstDate, PaymentFrequency frequency, int count)
+        {
+            return frequency switch
+            {
+                PaymentFrequency.Weekly => firstDate.AddDays(7 * (count - 1)),
+                PaymentFrequency.Biweekly => firstDate.AddDays(14 * (count - 1)),
+                PaymentFrequency.Monthly => firstDate.AddMonths(count - 1),
+                PaymentFrequency.Quarterly => firstDate.AddMonths(3 * (count - 1)),
+                _ => throw new ArgumentException("Invalid frequency")
+            };
         }
 
         [HttpGet]
@@ -200,41 +237,98 @@ namespace IOU.Web.Controllers
             return View(viewModel);
         }
 
-        private bool ValidateDebtCreation(CreateDebtViewModel model, out string errorMessage)
+        //private bool ValidateDebtCreation(CreateDebtViewModel model, out string errorMessage)
+        //{
+        //    errorMessage = null;
+
+        //    if (model.DueDate <= DateTime.Today)
+        //    {
+        //        errorMessage = "Due date must be in the future";
+        //        return false;
+        //    }
+
+        //    if (model.InterestRate < 0 || model.InterestRate > 100)
+        //    {
+        //        errorMessage = "Interest rate must be between 0 and 100";
+        //        return false;
+        //    }
+
+        //    if (model.GracePeriodDays < 0 || model.GracePeriodDays > 30)
+        //    {
+        //        errorMessage = "Grace period must be between 0 and 30 days";
+        //        return false;
+        //    }
+
+        //    if (model.FirstPaymentDate <= DateTime.Today)
+        //    {
+        //        errorMessage = "First payment date must be in the future";
+        //        return false;
+        //    }
+
+        //    if (model.NumberOfPayments <= 0 || model.NumberOfPayments > 120)
+        //    {
+        //        errorMessage = "Number of payments must be between 1 and 120";
+        //        return false;
+        //    }
+
+        //    DateTime lastPaymentDate;
+        //    if (model.NumberOfPayments.HasValue)
+        //    {
+        //        lastPaymentDate = CalculateLastPaymentDate(
+        //            model.FirstPaymentDate,
+        //            model.PaymentFrequency,
+        //            model.NumberOfPayments.Value);
+
+        //        if (lastPaymentDate > model.DueDate)
+        //        {
+        //            errorMessage = "The payment schedule exceeds the debt's due date. " +
+        //                         "Adjust the number of payments, frequency, or due date.";
+        //            return false;
+        //        }
+        //    }
+        //    else
+        //    {
+        //        // Auto-calculate installments based on due date
+        //        int calculatedPayments = CalculateNumberOfPayments(
+        //            model.FirstPaymentDate,
+        //            model.DueDate,
+        //            model.PaymentFrequency);
+
+        //        if (calculatedPayments == 0)
+        //        {
+        //            errorMessage = "The first payment date must be before the due date";
+        //            return false;
+        //        }
+        //    }
+
+        //    return true;
+        //}
+        private int CalculateNumberOfPayments(DateTime firstPaymentDate, DateTime dueDate, PaymentFrequency frequency)
         {
-            errorMessage = null;
+            if (firstPaymentDate >= dueDate)
+                return 0;
 
-            if (model.DueDate <= DateTime.Today)
+            return frequency switch
             {
-                errorMessage = "Due date must be in the future";
-                return false;
-            }
-
-            if (model.InterestRate < 0 || model.InterestRate > 100)
+                PaymentFrequency.Weekly => (int)Math.Ceiling((dueDate - firstPaymentDate).TotalDays / 7),
+                PaymentFrequency.Biweekly => (int)Math.Ceiling((dueDate - firstPaymentDate).TotalDays / 14),
+                PaymentFrequency.Monthly => ((dueDate.Year - firstPaymentDate.Year) * 12) +
+                                          dueDate.Month - firstPaymentDate.Month,
+                PaymentFrequency.Quarterly => ((dueDate.Year - firstPaymentDate.Year) * 4) +
+                                             ((dueDate.Month - firstPaymentDate.Month) / 3),
+                _ => 0
+            };
+        }
+        private DateTime CalculateLastPaymentDate(DateTime firstPaymentDate, PaymentFrequency frequency, int numberOfPayments)
+        {
+            return frequency switch
             {
-                errorMessage = "Interest rate must be between 0 and 100";
-                return false;
-            }
-
-            if (model.GracePeriodDays < 0 || model.GracePeriodDays > 30)
-            {
-                errorMessage = "Grace period must be between 0 and 30 days";
-                return false;
-            }
-
-            if (model.FirstPaymentDate <= DateTime.Today)
-            {
-                errorMessage = "First payment date must be in the future";
-                return false;
-            }
-
-            if (model.NumberOfPayments <= 0 || model.NumberOfPayments > 120)
-            {
-                errorMessage = "Number of payments must be between 1 and 120";
-                return false;
-            }
-
-            return true;
+                PaymentFrequency.Weekly => firstPaymentDate.AddDays(7 * (numberOfPayments - 1)),
+                PaymentFrequency.Biweekly => firstPaymentDate.AddDays(14 * (numberOfPayments - 1)),
+                PaymentFrequency.Monthly => firstPaymentDate.AddMonths(numberOfPayments - 1),
+                PaymentFrequency.Quarterly => firstPaymentDate.AddMonths(3 * (numberOfPayments - 1)),
+                _ => throw new ArgumentException("Invalid payment frequency")
+            };
         }
 
         private async Task<(ApplicationUser User, Lender Lender)> GetCurrentLender()

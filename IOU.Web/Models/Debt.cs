@@ -27,6 +27,8 @@ namespace IOU.Web.Models
         public DateTime DateIssued { get; set; }
         public DateTime DueDate { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        public DateTime UpdatedAt { get; set; }
         public DateTime LastInterestCalculationDate { get; set; }
 
         // Interest
@@ -87,6 +89,7 @@ namespace IOU.Web.Models
         Daily,
         Monthly,
         Quarterly,
-        Annually
+        Annually,
+        SemiAnnually
     }
 }

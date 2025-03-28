@@ -15,7 +15,7 @@
         // Payment progress
         public decimal PaymentProgress => CalculatePaymentProgress();
         public string NextPaymentDueIn => CalculateNextPaymentTimeframe();
-        public bool IsOverdue => NextPayment?.DueDate < DateTime.Now && NextPayment?.Status != PaymentStatus.Paid;
+        public bool IsOverdue => NextPayment?.DueDate < DateTime.Now && NextPayment?.Status != ScheduledPaymentStatus.Paid;
 
         private decimal CalculatePaymentProgress()
         {

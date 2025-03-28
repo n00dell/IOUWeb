@@ -16,20 +16,19 @@
         public decimal InterestPortion { get; set; }
         public decimal LateFeesPortion { get; set; }
 
+        public bool IsCustomPayment { get; set; } = false;
+
         // Status
-        public PaymentStatus Status { get; set; } = PaymentStatus.Scheduled;
+        public ScheduledPaymentStatus Status { get; set; } = ScheduledPaymentStatus.Scheduled;
 
         public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
        
     }
-
-    public enum PaymentStatus
+    public enum ScheduledPaymentStatus
     {
         Scheduled,
-        Pending,
         Paid,
-        Overdue,
-        Cancelled,
-        Failed
+        Overdue
     }
+
 }

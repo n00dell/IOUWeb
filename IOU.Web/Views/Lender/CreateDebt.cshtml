@@ -91,20 +91,29 @@
                     <!-- Add the missing payment schedule fields -->
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="NumberOfPayments" class="control-label">Number of Payments</label>
-                            <input asp-for="NumberOfPayments" class="form-control" />
+                            <label asp-for="NumberOfPayments" class="control-label">Number of Payments (Optional)</label>
+                            <input asp-for="NumberOfPayments"
+                                   class="form-control"
+                                   placeholder="Leave blank for auto-calculation"
+                                   data-toggle="tooltip"
+                                   title="If left blank, payments will be calculated based on due date and frequency" />
                             <span asp-validation-for="NumberOfPayments" class="text-danger"></span>
                         </div>
 
                         <div class="form-group mb-3">
                             <label asp-for="FirstPaymentDate" class="control-label">First Payment Date</label>
-                            <input asp-for="FirstPaymentDate" class="form-control" type="date" />
+                            <input asp-for="FirstPaymentDate"
+                                   class="form-control"
+                                   type="date"
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <span asp-validation-for="FirstPaymentDate" class="text-danger"></span>
                         </div>
 
                         <div class="form-group mb-3">
                             <label asp-for="PaymentFrequency" class="control-label">Payment Frequency</label>
-                            <select asp-for="PaymentFrequency" asp-items="Html.GetEnumSelectList<PaymentFrequency>()" class="form-control">
+                            <select asp-for="PaymentFrequency"
+                                    asp-items="Html.GetEnumSelectList<PaymentFrequency>()"
+                                    class="form-control">
                                 <option value="">Select Payment Frequency</option>
                             </select>
                             <span asp-validation-for="PaymentFrequency" class="text-danger"></span>
@@ -145,51 +154,89 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
     <script>
         $(document).ready(function() {
             function calculateLoanDetails() {
-                var principal = parseFloat($('#PrincipalAmount').val()) || 0;
-                var interestRate = parseFloat($('#InterestRate').val()) || 0;
-                var interestType = $('#InterestType').val();
-                var calculationPeriod = $('#CalculationPeriod').val();
-                var dueDate = new Date($('#DueDate').val());
-                var today = new Date();
-                var numberOfPayments = parseInt($('#NumberOfPayments').val()) || 12;
+                const principal = parseFloat($('#PrincipalAmount').val()) || 0;
+                const interestRate = parseFloat($('#InterestRate').val()) || 0;
+                const interestType = $('#InterestType').val();
+                const calculationPeriod = $('#CalculationPeriod').val();
+                const dueDate = new Date($('#DueDate').val());
+                const firstPaymentDate = new Date($('#FirstPaymentDate').val());
+                const paymentFrequency = $('#PaymentFrequency').val();
+                const today = new Date();
+                const numberOfPayments = parseInt($('#NumberOfPayments').val()) || null;
 
-                if (principal > 0 && interestRate > 0 && dueDate > today) {
-                    var months = (dueDate.getFullYear() - today.getFullYear()) * 12 +
-                        (dueDate.getMonth() - today.getMonth());
+                if (principal > 0 && interestRate > 0 && dueDate > today && firstPaymentDate > today) {
+                    // Calculate total periods based on calculation period
+                    const periods = calculateNumberOfPeriods(firstPaymentDate, dueDate, calculationPeriod);
 
-                    // Use number of payments instead of months for payment calculation if available
-                    var paymentPeriod = numberOfPayments > 0 ? numberOfPayments : months;
+                    // Rate is per period (e.g., 5% daily = 5% per day)
+                    const rate = interestRate / 100;
 
-                    var totalInterest = 0;
-                    var monthlyPayment = 0;
+                    let totalInterest = 0;
+                    let totalAmount = principal;
 
-                    if (interestType === '@InterestType.Simple.ToString()') {
-                        totalInterest = (principal * (interestRate/100) * (months/12));
-                        monthlyPayment = (principal + totalInterest) / paymentPeriod;
+                    if (interestType === 'Simple') {
+                        totalInterest = principal * rate * periods;
+                        totalAmount += totalInterest;
                     } else {
-                        // Compound interest calculation
-                        var n = calculationPeriod === '@InterestCalculationPeriod.Monthly.ToString()' ? 12 :
-                            calculationPeriod === '@InterestCalculationPeriod.Quarterly.ToString()' ? 4 : 1;
-
-                        var r = interestRate / (100 * n);
-                        var t = months / 12;
-                        var amount = principal * Math.pow(1 + r, n * t);
-                        totalInterest = amount - principal;
-                        monthlyPayment = amount / paymentPeriod;
+                        // Compound interest
+                        totalAmount = principal * Math.pow(1 + rate, periods);
+                        totalInterest = totalAmount - principal;
                     }
 
-                    $('#monthlyPayment').text('Ksh' + monthlyPayment.toFixed(2));
-                    $('#totalInterest').text('Ksh' + totalInterest.toFixed(2));
-                    $('#totalAmount').text('Kesh' + (principal + totalInterest).toFixed(2));
+                    // Calculate number of payments if not specified
+                    const paymentCount = numberOfPayments ||
+                        calculateAutoPayments(firstPaymentDate, dueDate, paymentFrequency);
+
+                    const installmentAmount = totalAmount / paymentCount;
+
+                    // Update display
+                    $('#monthlyPayment').text(`Ksh${installmentAmount.toFixed(2)}`);
+                    $('#totalInterest').text(`Ksh${totalInterest.toFixed(2)}`);
+                    $('#totalAmount').text(`Ksh${totalAmount.toFixed(2)}`);
                 }
             }
 
-            // Calculate on input change
-            $('#PrincipalAmount, #InterestRate, #InterestType, #CalculationPeriod, #DueDate, #NumberOfPayments')
+            function calculateNumberOfPeriods(startDate, endDate, period) {
+                const duration = endDate - startDate;
+                const days = duration / (1000 * 60 * 60 * 24);
+
+                switch(period) {
+                    case 'Daily': return Math.ceil(days);
+                    case 'Monthly': return Math.ceil(days / 30);
+                    case 'Quarterly': return Math.ceil(days / 91);
+                    case 'SemiAnnually': return Math.ceil(days / 182);
+                    case 'Annually': return Math.ceil(days / 365);
+                    default: return Math.ceil(days / 30); // Default to monthly
+                }
+            }
+
+            function calculateAutoPayments(firstDate, dueDate, frequency) {
+                if (firstDate >= dueDate) return 0;
+
+                const days = (dueDate - firstDate) / (1000 * 60 * 60 * 24);
+
+                switch(frequency) {
+                    case 'Weekly': return Math.ceil(days / 7);
+                    case 'Biweekly': return Math.ceil(days / 14);
+                    case 'Monthly': return Math.ceil(days / 30);
+                    case 'Quarterly': return Math.ceil(days / 91);
+                    case 'SemiAnnually': return Math.ceil(days / 182);
+                    case 'Annually': return Math.ceil(days / 365);
+                    default: return Math.ceil(days / 30); // Default to monthly
+                }
+            }
+
+            // Event listeners
+            $('#PrincipalAmount, #InterestRate, #InterestType, #CalculationPeriod, ' +
+             '#DueDate, #FirstPaymentDate, #NumberOfPayments, #PaymentFrequency')
                 .on('input change', calculateLoanDetails);
+
+            // Initial calculation
+            calculateLoanDetails();
         });
     </script>
 }

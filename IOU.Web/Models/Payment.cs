@@ -22,16 +22,19 @@ namespace IOU.Web.Models
         public string? MpesaReceiptNumber { get; set; }
         public string PhoneNumber { get; set; }
         // Payment Status
-        public PaymentStatus Status { get; set; } // Add this line
-                                                  // Add these fields
+        public PaymentTransactionStatus Status { get; set; } = PaymentTransactionStatus.Pending;
+        [Required]
         public string CheckoutRequestID { get; set; }
+        [Required]
         public DateTime InitiatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CompletedAt { get; set; }
         public string? ResultCode { get; set; }
         public string? ResultDescription { get; set; }
+        [StringLength(500)]
+        public string? FailureReason { get; set; }
 
 
-        
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         // Navigation Properties
@@ -40,5 +43,11 @@ namespace IOU.Web.Models
         [ForeignKey("DebtId")]
         public Debt Debt { get; set; }
     }
-
+    public enum PaymentTransactionStatus
+    {
+        
+        Pending = 1,
+        Paid = 2,
+        Failed = 3
+    }
 }

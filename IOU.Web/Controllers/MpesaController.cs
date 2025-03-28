@@ -1,6 +1,7 @@
 ﻿using IOU.Web.Data;
 using IOU.Web.Models;
 using IOU.Web.Services;
+using IOU.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,157 +18,140 @@ namespace IOU.Web.Controllers
         private readonly IOUWebContext _context;
         private readonly MpesaPaymentService _mpesaService;
         private readonly ILogger<MpesaController> _logger;
+        private readonly IDebtService _debtService;
 
-        public MpesaController(IOUWebContext context, MpesaPaymentService mpesaService, ILogger<MpesaController> logger)
+        public MpesaController(IOUWebContext context, MpesaPaymentService mpesaService, ILogger<MpesaController> logger, IDebtService debtService)
         {
             _context = context;
             _logger = logger;
             _mpesaService = mpesaService;
+            _debtService = debtService;
         }
         [HttpPost("initiate")]
         [Authorize(Roles = "Student")]
         public async Task<IActionResult> InitiatePayment([FromBody] PaymentInitiateRequest request)
         {
+            _logger.LogInformation("InitiatePayment request received: {@Request}", request);
+
             try
             {
-                // Log the incoming request
-                _logger.LogInformation($"Payment initiation request: {JsonConvert.SerializeObject(request)}");
-
-                // Validate input
-                if (string.IsNullOrEmpty(request.DebtId) || request.Amount <= 0 || string.IsNullOrEmpty(request.PhoneNumber))
+                // Validate request
+                if (request == null)
                 {
-                    _logger.LogWarning($"Invalid payment details: DebtId={request.DebtId}, Amount={request.Amount}, Phone={request.PhoneNumber}");
-                    return BadRequest(new { success = false, message = "Invalid payment details" });
+                    _logger.LogWarning("Null request received");
+                    return BadRequest(new { success = false, message = "Invalid request" });
                 }
 
-                // Check if debt exists and belongs to the current user
+                if (request.Amount <= 0)
+                {
+                    _logger.LogWarning("Invalid amount: {Amount}", request.Amount);
+                    return BadRequest(new { success = false, message = "Amount must be greater than 0" });
+                }
+
+                // Get current user
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var debt = await _context.Debt.FirstOrDefaultAsync(d => d.Id == request.DebtId && d.StudentUserId == userId);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("User not authenticated");
+                    return Unauthorized();
+                }
+
+                // Verify debt exists and belongs to user
+                var debt = await _context.Debt
+                    .FirstOrDefaultAsync(d => d.Id == request.DebtId && d.StudentUserId == userId);
 
                 if (debt == null)
                 {
-                    _logger.LogWarning($"Debt not found or not authorized: DebtId={request.DebtId}, UserId={userId}");
-                    return NotFound(new { success = false, message = "Debt not found or not authorized" });
+                    _logger.LogWarning("Debt not found or unauthorized access. DebtId: {DebtId}, UserId: {UserId}",
+                        request.DebtId, userId);
+                    return NotFound(new { success = false, message = "Debt not found" });
                 }
 
-                // Format phone number to E.164 format
-                string formattedPhone = FormatPhoneNumber(request.PhoneNumber);
-                _logger.LogInformation($"Formatted phone number: {formattedPhone}");
-
-                // Initiate the MPESA payment
-                var response = await _mpesaService.InitiatePaymentAsync(
-                    formattedPhone,
-                    request.Amount,
-                    request.DebtId // Using debt ID as account reference
-                );
-
-                // Store pending payment information - use a unique ID
-                var payment = new Payment
-                {
-                    Id = Guid.NewGuid().ToString(), // Explicitly set ID
-                    DebtId = request.DebtId,
-                    Amount = request.Amount,
-                    PhoneNumber = formattedPhone, 
-                    CheckoutRequestID = response.CheckoutRequestID,
-                    Status = PaymentStatus.Pending,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-
-                    // Explicitly set nullable fields
-                    ResultCode = null,
-                    ResultDescription = null,
-                    MpesaReceiptNumber = null,
-                    MpesaTransactionId = null,
-                    CompletedAt = null,
-                    PaymentDate = null
-                };
-
+                // Format phone number
+                string formattedPhone;
                 try
                 {
-                    _context.Payments.Add(payment);
-                    await _context.SaveChangesAsync();
+                    formattedPhone = FormatPhoneNumber(request.PhoneNumber);
+                    _logger.LogInformation("Formatted phone number: {Phone}", formattedPhone);
                 }
-                catch (DbUpdateException dbEx)
+                catch (Exception ex)
                 {
-                    // Log the specific database exception
-                    _logger.LogError(dbEx, $"Database error when saving payment: {dbEx.Message}");
-                    if (dbEx.InnerException != null)
-                    {
-                        _logger.LogError($"Inner DB exception: {dbEx.InnerException.Message}");
-
-                        // Return more detailed error info for debugging
-                        return StatusCode(500, new
-                        {
-                            success = false,
-                            message = "Database error while saving payment",
-                            error = dbEx.Message,
-                            innerError = dbEx.InnerException.Message
-                        });
-                    }
-                    throw; // Re-throw to be caught by outer catch
+                    _logger.LogError(ex, "Phone number formatting failed");
+                    return BadRequest(new { success = false, message = "Invalid phone number format" });
                 }
 
-                _logger.LogInformation($"Payment initiated successfully: ID={payment.Id}, CheckoutRequestID={response.CheckoutRequestID}");
+                // Initiate M-Pesa payment
+                var mpesaResponse = await _mpesaService.InitiatePaymentAsync(
+                    formattedPhone,
+                    request.Amount,
+                    request.DebtId
+                );
+
+                if (!mpesaResponse.Success)
+                {
+                    
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = mpesaResponse.ErrorMessage ?? "Payment initiation failed"
+                    });
+                }
+
+                // Save payment record
+                var payment = new Payment
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    DebtId = request.DebtId,
+                    Amount = request.Amount,
+                    PhoneNumber = formattedPhone,
+                    CheckoutRequestID = mpesaResponse.CheckoutRequestID,
+                    Status = PaymentTransactionStatus.Pending,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Payments.Add(payment);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Payment initiated successfully. PaymentId: {PaymentId}", payment.Id);
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Payment initiated",
-                    checkoutRequestID = response.CheckoutRequestID,
-                    paymentId = payment.Id
+                    message = "Payment initiated successfully",
+                    paymentId = payment.Id,
+                    checkoutRequestID = mpesaResponse.CheckoutRequestID
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error initiating MPESA payment: {ex.Message}");
-
-                // Log inner exception details if present
-                if (ex.InnerException != null)
-                {
-                    _logger.LogError($"Inner exception: {ex.InnerException.Message}");
-                }
-
-                // Return a more detailed error message
+                _logger.LogError(ex, "Error initiating payment");
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "Failed to initiate payment. Please try again.",
-                    error = ex.Message,
-                    innerError = ex.InnerException?.Message
+                    message = "An unexpected error occurred",
+                    error = ex.Message
                 });
             }
         }
 
-        [HttpGet("status/{paymentId}")]
+        
         [Authorize(Roles = "Student")]
-        public async Task<IActionResult> CheckPaymentStatus(string paymentId)
+        [HttpGet("payment-status/{checkoutRequestId}")]
+        public async Task<IActionResult> CheckPaymentStatus(string checkoutRequestId)
         {
-            try
-            {
-                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var payment = await _context.Payments
-                    .Include(p => p.Debt)
-                    .FirstOrDefaultAsync(p => p.Id == paymentId && p.Debt.StudentUserId == userId);
+            var payment = await _context.Payments
+                .FirstOrDefaultAsync(p => p.CheckoutRequestID == checkoutRequestId);
 
-                if (payment == null)
-                {
-                    return NotFound(new { success = false, message = "Payment not found" });
-                }
+            if (payment == null) return NotFound();
 
-                return Ok(new
-                {
-                    success = true,
-                    status = payment.Status.ToString(),
-                    amount = payment.Amount,
-                    mpesaReceiptNumber = payment.MpesaReceiptNumber,
-                    paymentDate = payment.PaymentDate
-                });
-            }
-            catch (Exception ex)
+            return Ok(new
             {
-                _logger.LogError(ex, "Error checking payment status");
-                return StatusCode(500, new { success = false, message = "Failed to check payment status" });
-            }
+                status = payment.Status.ToString(),
+                confirmed = payment.Status == PaymentTransactionStatus.Paid,
+                receipt = payment.MpesaReceiptNumber,
+                error = payment.FailureReason
+            });
         }
         private string FormatPhoneNumber(string phoneNumber)
         {
@@ -193,16 +177,20 @@ namespace IOU.Web.Controllers
         {
             try
             {
-                _logger.LogInformation($"Received MPESA callback: {JsonConvert.SerializeObject(callbackData)}");
+                _logger.LogInformation($"Received MPESA callback: {JsonConvert.SerializeObject(callbackData, Formatting.Indented)}");
 
-                var stkCallback = callbackData.Body?.StkCallback;
-                if (stkCallback == null)
+                if (callbackData?.Body?.StkCallback == null)
                 {
-                    _logger.LogWarning("Invalid callback data received");
-                    return BadRequest("Invalid callback data");
+                    _logger.LogWarning("Invalid callback structure received: Null or missing StkCallback");
+                    return BadRequest("Invalid callback structure");
                 }
 
+                var stkCallback = callbackData.Body.StkCallback;
+                _logger.LogInformation($"Callback Details - ResultCode: {stkCallback.ResultCode}, Description: {stkCallback.ResultDesc}");
+
+                // Find the payment record
                 var payment = await _context.Payments
+                    .Include(p => p.Debt) // Include Debt for updates
                     .FirstOrDefaultAsync(p => p.CheckoutRequestID == stkCallback.CheckoutRequestID);
 
                 if (payment == null)
@@ -211,41 +199,210 @@ namespace IOU.Web.Controllers
                     return NotFound("Payment not found");
                 }
 
+                // Update payment details
                 payment.ResultCode = stkCallback.ResultCode;
                 payment.ResultDescription = stkCallback.ResultDesc;
-                payment.CompletedAt = DateTime.UtcNow;
 
-                if (stkCallback.ResultCode == "0")
+                if (stkCallback.ResultCode == "0") // Success
                 {
-                    payment.Status = PaymentStatus.Paid;
-                    var metadata = stkCallback.CallbackMetadata?.Item;
-
-                    payment.MpesaReceiptNumber = metadata?
-                        .FirstOrDefault(i => i.Name == "MpesaReceiptNumber")?.Value?.ToString();
-                    payment.MpesaTransactionId = metadata?
-                        .FirstOrDefault(i => i.Name == "TransactionID")?.Value?.ToString();
-
+                    payment.Status = PaymentTransactionStatus.Paid;
                     payment.PaymentDate = DateTime.UtcNow;
+                    payment.CompletedAt = DateTime.UtcNow;
 
-                    // Update associated debt
-                    var debt = await _context.Debt.FindAsync(payment.DebtId);
-                    if (debt != null)
+                    // Extract metadata values
+                    if (stkCallback.CallbackMetadata?.Item != null)
                     {
-                        debt.CurrentBalance -= payment.Amount;
+                        foreach (var item in stkCallback.CallbackMetadata.Item)
+                        {
+                            switch (item.Name)
+                            {
+                                case "MpesaReceiptNumber":
+                                    payment.MpesaReceiptNumber = item.Value?.ToString();
+                                    break;
+                                case "TransactionID":
+                                    payment.MpesaTransactionId = item.Value?.ToString();
+                                    break;
+                                case "Amount":
+                                    if (decimal.TryParse(item.Value?.ToString(), out var amount))
+                                        payment.Amount = amount;
+                                    break;
+                                case "PhoneNumber":
+                                    payment.PhoneNumber = item.Value?.ToString();
+                                    break;
+                            }
+                        }
                     }
+
+                    // Update debt
+                    if (payment.Debt != null)
+                    {
+                        payment.Debt.CurrentBalance -= payment.Amount;
+                        await _debtService.UpdateDebtCalculations(payment.Debt.Id);
+                    }
+
+                    // Remove Reload() as it overwrites changes
+                    await _context.SaveChangesAsync();
+
+                    // Process against scheduled payments
+                    await ProcessPaymentAgainstSchedule(payment);
                 }
                 else
                 {
-                    payment.Status = PaymentStatus.Failed;
+                    payment.Status = PaymentTransactionStatus.Failed;
+                    payment.FailureReason = stkCallback.ResultDesc;
+                    _logger.LogError($"MPESA payment failed. Code: {stkCallback.ResultCode}, Description: {stkCallback.ResultDesc}");
+                    await _context.SaveChangesAsync();
                 }
 
-                await _context.SaveChangesAsync();
                 return Ok();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing MPESA callback");
                 return StatusCode(500, "Internal server error");
+            }
+        }
+        private bool ValidateCallback(MpesaCallbackResponse callback)
+        {
+            if (callback?.Body?.StkCallback == null) return false;
+
+            // Required fields for successful transaction
+            if (callback.Body.StkCallback.ResultCode == "0")
+            {
+                return callback.Body.StkCallback.CallbackMetadata?.Item != null &&
+                       callback.Body.StkCallback.CallbackMetadata.Item.Any(i =>
+                           i.Name == "MpesaReceiptNumber" &&
+                           i.Name == "Amount");
+            }
+
+            return true;
+        }
+
+        [HttpPost("update-debt/{paymentId}")]
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> UpdateDebtAfterPayment(string paymentId)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var payment = await _context.Payments
+                    .Include(p => p.Debt)
+                    .FirstOrDefaultAsync(p => p.Id == paymentId && p.Debt.StudentUserId == userId);
+
+                if (payment == null)
+                {
+                    return NotFound(new { success = false, message = "Payment not found" });
+                }
+
+                if (payment.Status != PaymentTransactionStatus.Paid)
+                {
+                    return BadRequest(new { success = false, message = "Payment not completed" });
+                }
+
+                // Update debt calculations
+                var debt = payment.Debt;
+                debt.CurrentBalance -= payment.Amount;
+
+                // Process the payment against scheduled payments
+                await ProcessPaymentAgainstSchedule(payment);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating debt after payment");
+                return StatusCode(500, new { success = false, message = "Failed to update debt" });
+            }
+        }
+        private async Task ProcessSuccessfulPayment(Payment payment, StkCallback stkCallback)
+        {
+            try
+            {
+                payment.Status = PaymentTransactionStatus.Paid;
+                payment.PaymentDate = DateTime.UtcNow;
+
+                foreach (var item in stkCallback.CallbackMetadata.Item)
+                {
+                    switch (item.Name)
+                    {
+                        case "MpesaReceiptNumber":
+                            payment.MpesaReceiptNumber = item.Value?.ToString();
+                            break;
+                        case "TransactionID":
+                            payment.MpesaTransactionId = item.Value?.ToString();
+                            break;
+                        case "Amount":
+                            if (decimal.TryParse(item.Value?.ToString(), out var amount))
+                            {
+                                payment.Amount = amount;
+                            }
+                            break;
+                        case "PhoneNumber":
+                            payment.PhoneNumber = item.Value?.ToString();
+                            break;
+                    }
+                }
+
+                var debt = await _context.Debt.FindAsync(payment.DebtId);
+                if (debt != null)
+                {
+                    debt.CurrentBalance -= payment.Amount;
+                    await _debtService.UpdateDebtCalculations(debt.Id);
+                }
+
+                await ProcessPaymentAgainstSchedule(payment);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error processing successful payment {payment.Id}, Receipt: {payment.MpesaReceiptNumber}");
+                throw;
+            }
+
+        }
+
+
+        private async Task ProcessPaymentAgainstSchedule(Payment payment)
+        {
+            var scheduledPayments = await _context.ScheduledPayment
+                .Where(p => p.DebtId == payment.DebtId && p.Status != ScheduledPaymentStatus.Paid)
+                .OrderBy(p => p.DueDate)
+                .ToListAsync();
+
+            var remainingAmount = payment.Amount;
+
+            foreach (var scheduledPayment in scheduledPayments)
+            {
+                if (remainingAmount <= 0) break;
+
+                var amountToApply = Math.Min(remainingAmount, scheduledPayment.Amount);
+
+                scheduledPayment.Amount -= amountToApply;
+                remainingAmount -= amountToApply;
+
+                if (scheduledPayment.Amount <= 0)
+                {
+                    scheduledPayment.Status = ScheduledPaymentStatus.Paid;
+                    scheduledPayment.PaymentDate = DateTime.UtcNow;
+                }
+            }
+
+            // If there's remaining amount after applying to all scheduled payments,
+            // create a custom payment record
+            if (remainingAmount > 0)
+            {
+                var customPayment = new ScheduledPayment
+                {
+                    DebtId = payment.DebtId,
+                    Amount = remainingAmount,
+                    Status = ScheduledPaymentStatus.Paid,
+                    PaymentDate = DateTime.UtcNow,
+                    DueDate = DateTime.UtcNow,
+                    IsCustomPayment = true
+                };
+
+                _context.ScheduledPayment.Add(customPayment);
             }
         }
 

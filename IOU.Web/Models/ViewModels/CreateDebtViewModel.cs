@@ -40,10 +40,9 @@ namespace IOU.Web.Models.ViewModels
         public string Purpose { get; set; }
 
 
-        [Required]
         [Display(Name = "Number of Payments")]
         [Range(1, 120, ErrorMessage = "Number of payments must be between 1 and 120")]
-        public int NumberOfPayments { get; set; }
+        public int? NumberOfPayments { get; set; }
 
         [Required]
         [Display(Name = "First Payment Date")]

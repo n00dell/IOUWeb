@@ -7,9 +7,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace IOU.Web.Controllers
 {
+    [Authorize(Roles = "Student")]
+    [Route("Student")]
+    [ApiController]
+    [AutoValidateAntiforgeryToken]
     public class StudentController : Controller
     {
         private readonly IDebtService _debtService;
@@ -18,7 +23,8 @@ namespace IOU.Web.Controllers
         private readonly ISchedulePaymentService _paymentService;
         private readonly ILogger<StudentController> _logger;
         private readonly INotificationService _notificationService;
-        public StudentController(IDebtService debtService, IOUWebContext context, UserManager<ApplicationUser> userManager, ISchedulePaymentService paymentService, ILogger<StudentController> logger, INotificationService notificationService)
+        private readonly MpesaPaymentService _mpesaService;
+        public StudentController(IDebtService debtService, IOUWebContext context, UserManager<ApplicationUser> userManager, ISchedulePaymentService paymentService, ILogger<StudentController> logger, INotificationService notificationService, MpesaPaymentService mpesaService)
         {
             _debtService = debtService;
             _context = context;
@@ -26,10 +32,12 @@ namespace IOU.Web.Controllers
             _paymentService = paymentService;
             _logger = logger;
             _notificationService = notificationService;
+            _mpesaService = mpesaService;
         }
 
 
         [Authorize(Roles = "Student")]
+        [HttpGet("Dashboard")]
         public async Task<IActionResult> Dashboard()
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -52,7 +60,7 @@ namespace IOU.Web.Controllers
                 await _paymentService.UpdatePaymentStatusesAsync(debt.Id);
 
                 var nextPayment = await _context.ScheduledPayment
-                    .Where(p => p.DebtId == debt.Id && p.Status != PaymentStatus.Paid)
+                    .Where(p => p.DebtId == debt.Id && p.Status != ScheduledPaymentStatus.Paid)
                     .OrderBy(p => p.DueDate)
                     .FirstOrDefaultAsync();
 
@@ -75,6 +83,7 @@ namespace IOU.Web.Controllers
 
 
         [Authorize(Roles = "Student")]
+        [HttpGet("DebtDetails/{id}")]
         public async Task<IActionResult> DebtDetails(string id)
         {
             try
@@ -118,6 +127,7 @@ namespace IOU.Web.Controllers
         }
 
         [Authorize(Roles = "Student")]
+        [HttpGet("MyDebts")]
         public async Task<IActionResult> MyDebts()
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -140,7 +150,7 @@ namespace IOU.Web.Controllers
                 await _debtService.UpdateDebtCalculations(debt.Id);
 
                 var nextPayment = await _context.ScheduledPayment
-                    .Where(p => p.DebtId == debt.Id && p.Status != PaymentStatus.Paid)
+                    .Where(p => p.DebtId == debt.Id && p.Status != ScheduledPaymentStatus.Paid)
                     .OrderBy(p => p.DueDate)
                     .FirstOrDefaultAsync();
 
@@ -155,6 +165,7 @@ namespace IOU.Web.Controllers
         }
 
         [Authorize(Roles = "Student")]
+        [HttpGet("PaymentHistory")]
         public async Task<IActionResult> PaymentHistory()
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -172,6 +183,7 @@ namespace IOU.Web.Controllers
         }
 
         [Authorize(Roles = "Student")]
+        [HttpGet("CreateDispute/{debtId}")]
         public async Task<IActionResult> ReviewDebt(string id)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -199,6 +211,7 @@ namespace IOU.Web.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Student")]
+        [HttpGet("ReviewDebtDecision/{id}")]
         public async Task<IActionResult> ReviewDebtDecision(ReviewDebtViewModel model)
         {
             if (!ModelState.IsValid)
@@ -423,6 +436,7 @@ namespace IOU.Web.Controllers
             }
         }
         [Authorize(Roles = "Student")]
+        [HttpGet("DisputeConfirmation/{disputeId}")]
         public async Task<IActionResult> DisputeConfirmation(string disputeId)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -461,82 +475,83 @@ namespace IOU.Web.Controllers
         [Authorize(Roles = "Student")]
         [ValidateAntiForgeryToken]
         [HttpPost("MakeCustomPayment")]
+        [Produces("application/json")]
+        [Route("Student/[action]")]
         public async Task<IActionResult> MakeCustomPayment(
-    string debtId,
-    decimal amount,
-    string phoneNumber,
-    string mpesaTransactionId,
-    string mpesaReceiptNumber)
+    [FromBody] CustomPaymentRequest request)
         {
             try
             {
-                var currentUser = await _userManager.GetUserAsync(User);
-                var debt = await _context.Debt
-                    .Include(d => d.Student)
-                    .FirstOrDefaultAsync(d => d.Id == debtId && d.StudentUserId == currentUser.Id);
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Validation failed",
+                        errors = ModelState.Values
+                            .SelectMany(v => v.Errors)
+                            .Select(e => e.ErrorMessage)
+                    });
+                }
 
-                if (debt == null) return NotFound("Debt not found.");
+                // Initiate payment with MPesa
+                var mpesaResponse = await _mpesaService.InitiatePaymentAsync(
+                    request.PhoneNumber,
+                    request.Amount,
+                    request.DebtId
+                );
 
-                // Create a payment record
+                // Create payment record without MPesa details
                 var payment = new Payment
                 {
-                    DebtId = debtId,
-                    Amount = amount,
-                    PhoneNumber = phoneNumber,
-                    MpesaTransactionId = mpesaTransactionId,
-                    MpesaReceiptNumber = mpesaReceiptNumber,
-                    Status = PaymentStatus.Pending
+                    DebtId = request.DebtId,
+                    Amount = request.Amount,
+                    PhoneNumber = request.PhoneNumber,
+                    CheckoutRequestID = mpesaResponse.CheckoutRequestID,
+                    Status = PaymentTransactionStatus.Pending
                 };
 
                 _context.Payments.Add(payment);
-                debt.CurrentBalance -= amount; // Update debt balance
                 await _context.SaveChangesAsync();
 
-                return Ok(new { success = true, message = "Payment processed!" });
+                return Ok(new
+                {
+                    success = true,
+                    checkoutRequestId = payment.CheckoutRequestID
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing custom payment.");
-                return StatusCode(500, new { success = false, message = "Payment failed." });
+                _logger.LogError(ex, "Payment initiation failed");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
-
         }
-        [Authorize(Roles = "Student")]
-        public async Task<IActionResult> Reports(string reportType)
+        // StudentController.cs
+        [HttpGet("payment-status/{checkoutRequestId}")]
+        public async Task<IActionResult> CheckPaymentStatus(string checkoutRequestId)
         {
-            var currentUser = await _userManager.GetUserAsync(User);
-            var student = await _context.Student
-                .FirstOrDefaultAsync(s => s.UserId == currentUser.Id);
+            var payment = await _context.Payments
+                .FirstOrDefaultAsync(p => p.CheckoutRequestID == checkoutRequestId);
 
-            if (student == null)
-                return RedirectToAction("Error", "Home");
-
-            var viewModel = new StudentReportsViewModel
+            _logger.LogInformation($"Checking payment status for CheckoutRequestID: {checkoutRequestId}");
+            if (payment == null)
             {
-                ReportType = reportType,
-                Student = student
-            };
-
-            switch (reportType)
-            {
-                case "TotalDebtOverview":
-                    viewModel.Data = await GetTotalDebtOverview(student.UserId);
-                    break;
-                case "PaymentHistory":
-                    viewModel.Data = await GetPaymentHistory(student.UserId);
-                    break;
-                case "UpcomingPayments":
-                    viewModel.Data = await GetUpcomingPayments(student.UserId);
-                    break;
-                // Add more cases as needed
-                default:
-                    viewModel.Data = new List<object>();
-                    break;
+                _logger.LogWarning($"No payment found for CheckoutRequestID: {checkoutRequestId}");
+                return NotFound();
             }
 
-            return View(viewModel);
+            return Ok(new
+            {
+                status = payment.Status.ToString(),
+                confirmed = payment.Status == PaymentTransactionStatus.Paid,
+                receipt = payment.MpesaReceiptNumber,
+                error = payment.FailureReason
+            });
         }
-
         private async Task<List<object>> GetTotalDebtOverview(string userId)
         {
             // Logic to get total debt overview

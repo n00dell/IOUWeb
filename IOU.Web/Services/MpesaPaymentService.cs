@@ -7,6 +7,9 @@ using System.Text;
 using IOU.Web.Models;
 using System.Reflection.PortableExecutable;
 using System.Net.Http;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using IOU.Web.Data;
 
 namespace IOU.Web.Services
 {
@@ -16,21 +19,36 @@ namespace IOU.Web.Services
         private readonly MpesaConfiguration _config;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<MpesaPaymentService> _logger;
+        private readonly IOUWebContext _context;
 
-        public MpesaPaymentService(IOptions<MpesaConfiguration> config, MpesaAuthService authService, ILogger<MpesaPaymentService> logger, IHttpClientFactory httpClientFactory)
+        public MpesaPaymentService(IOptions<MpesaConfiguration> config, MpesaAuthService authService, ILogger<MpesaPaymentService> logger, IHttpClientFactory httpClientFactory, IOUWebContext context)
         {
             _config = config.Value;
             _httpClientFactory = httpClientFactory;
             _authService = authService;
             _logger = logger;
-            
+            _context = context;
         }
         public async Task<dynamic> InitiatePaymentAsync(string phoneNumber, decimal amount, string accountReference)
         {
             try
             {
+                // Validate inputs
+                if (amount <= 0) throw new ArgumentException("Amount must be greater than 0");
+                if (string.IsNullOrWhiteSpace(phoneNumber)) throw new ArgumentException("Phone number is required");
+
+                // Check for existing pending transactions
+                var existingPayment = await _context.Payments
+                    .FirstOrDefaultAsync(p => p.PhoneNumber == phoneNumber && p.Status == PaymentTransactionStatus.Pending);
+
+                if (existingPayment != null)
+                {
+                    throw new Exception("A transaction is already in progress for this phone number.");
+                }
+
                 // Get authentication token
                 var token = await _authService.GetAuthTokenAsync();
+                _logger.LogInformation("Successfully retrieved M-Pesa auth token");
 
                 // Generate timestamp and password
                 var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
@@ -60,21 +78,20 @@ namespace IOU.Web.Services
                     Content = new StringContent(JsonConvert.SerializeObject(paymentRequest), Encoding.UTF8, "application/json")
                 };
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-                // Send request
                 var response = await client.SendAsync(request);
-                response.EnsureSuccessStatusCode();
+                var rawContent = await response.Content.ReadAsStringAsync(); // Capture raw response
 
-                // Process response
-                var content = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation($"Payment initiation successful: {content}");
-
-                // Parse the response to get CheckoutRequestID
-                var responseData = JsonConvert.DeserializeObject<dynamic>(content);
-                if (responseData == null || responseData.CheckoutRequestID == null)
+                if (!response.IsSuccessStatusCode)
                 {
-                    throw new Exception("Invalid response from MPESA API: CheckoutRequestID is missing.");
+                    _logger.LogError($"MPesa API Error: {response.StatusCode} - {rawContent}");
+                    throw new Exception($"MPesa API Error: {response.StatusCode}");
                 }
+
+                // Log successful response
+                _logger.LogInformation($"MPesa Response: {rawContent}");
+                var responseData = JsonConvert.DeserializeObject<dynamic>(rawContent);
+                if (responseData?.CheckoutRequestID == null)
+                    throw new Exception("Invalid MPesa response format");
 
                 return responseData;
             }

@@ -62,9 +62,12 @@ builder.Services.AddScoped<IEmailService, MailJetEmailService>(); // Register IE
 builder.Services.Configure<MpesaConfiguration>(builder.Configuration.GetSection("MpesaConfiguration"));
 builder.Services.AddScoped<MpesaAuthService>();
 builder.Services.AddScoped<MpesaPaymentService>();
+builder.Services.AddHostedService<PaymentCleanupService>();
 
 // Add Razor runtime compilation
 builder.Services.AddMvc().AddRazorRuntimeCompilation();
+
+
 
 var app = builder.Build();
 
@@ -93,6 +96,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseCors("AllowAll");
 app.UseRouting();
 
 app.UseAuthentication(); // Add this line

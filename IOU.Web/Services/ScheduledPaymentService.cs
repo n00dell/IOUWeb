@@ -26,51 +26,162 @@ namespace IOU.Web.Services
 
         public async Task<List<ScheduledPayment>> GeneratePaymentScheduleAsync(CreateScheduledPaymentsRequest request)
         {
-            var debt = await _context.Debt
-                .FirstOrDefaultAsync(d => d.Id == request.DebtId)
+            var debt = await _context.Debt.FindAsync(request.DebtId)
                 ?? throw new ArgumentException("Debt not found");
 
-            // Calculate total amount including projected interest if needed
-            decimal totalAmount = debt.CurrentBalance;
-            if (request.IncludeInterestInCalculation)
+            int numberOfPayments = request.NumberOfPayments ??
+                CalculateAutoPayments(request.FirstPaymentDate, debt.DueDate, request.Frequency);
+
+            if (numberOfPayments <= 0)
+                throw new ArgumentException("Invalid payment schedule configuration");
+
+            return debt.InterestType switch
             {
-                // Project interest for the payment period
-                var projectedEndDate = CalculatePaymentEndDate(request.FirstPaymentDate, request.Frequency, request.NumberOfPayments);
-                totalAmount += ProjectInterestAmount(debt, request.FirstPaymentDate, projectedEndDate);
+                InterestType.Compound => await GenerateCompoundSchedule(debt, request.FirstPaymentDate, numberOfPayments, request.Frequency),
+                _ => await GenerateSimpleSchedule(debt, request.FirstPaymentDate, numberOfPayments, request.Frequency, request.IncludeInterestInCalculation)
+            };
+        }
+        
+        private int GetMonthDifference(DateTime startDate, DateTime endDate)
+        {
+            return (endDate.Year - startDate.Year) * 12 + (endDate.Month - startDate.Month);
+        }
+
+        private DateTime GetNextPaymentDate(DateTime currentDate, PaymentFrequency frequency)
+        {
+            return frequency switch
+            {
+                PaymentFrequency.Weekly => currentDate.AddDays(7),
+                PaymentFrequency.Biweekly => currentDate.AddDays(14),
+                PaymentFrequency.Monthly => currentDate.AddMonths(1),
+                PaymentFrequency.Quarterly => currentDate.AddMonths(3),
+                _ => currentDate.AddMonths(1) // Default to monthly
+            };
+        }
+        private int GetNumberOfPeriods(DateTime startDate, DateTime endDate, InterestCalculationPeriod period)
+        {
+            TimeSpan duration = endDate - startDate;
+
+            return period switch
+            {
+                InterestCalculationPeriod.Daily => (int)Math.Ceiling(duration.TotalDays),
+                InterestCalculationPeriod.Monthly => (int)Math.Ceiling(duration.TotalDays / 30),
+                InterestCalculationPeriod.Quarterly => (int)Math.Ceiling(duration.TotalDays / 91),
+                InterestCalculationPeriod.SemiAnnually => (int)Math.Ceiling(duration.TotalDays / 182),
+                InterestCalculationPeriod.Annually => (int)Math.Ceiling(duration.TotalDays / 365),
+                _ => throw new ArgumentException("Invalid calculation period")
+            };
+        }
+        private async Task<List<ScheduledPayment>> GenerateCompoundSchedule(
+        Debt debt, DateTime firstPaymentDate, int numberOfPayments,
+        PaymentFrequency frequency)
+        {
+            // Get number of periods between dates based on calculation period
+            int periods = GetNumberOfPeriods(firstPaymentDate, debt.DueDate, debt.CalculationPeriod);
+
+            // Rate is already per period (e.g., 5% daily = 5% per day)
+            decimal rate = debt.InterestRate / 100m;
+
+            decimal totalAmount = debt.PrincipalAmount * (decimal)Math.Pow(1 + (double)rate, periods);
+            decimal totalInterest = totalAmount - debt.PrincipalAmount;
+
+            var payments = await GenerateInstallments(debt, totalAmount, firstPaymentDate, numberOfPayments, frequency);
+
+            // Split principal/interest portions
+            foreach (var payment in payments)
+            {
+                payment.PrincipalPortion = payment.Amount * (debt.PrincipalAmount / totalAmount);
+                payment.InterestPortion = payment.Amount * (totalInterest / totalAmount);
             }
 
+            return payments;
+        }
+        private async Task<List<ScheduledPayment>> GenerateAmortizedSchedule(
+            Debt debt, DateTime firstPaymentDate, int numberOfPayments,
+            PaymentFrequency frequency, bool isCustomInstallments)
+        {
+            decimal ratePerPeriod = GetPeriodicInterestRate(debt);
+            decimal remainingPrincipal = debt.PrincipalAmount;
             var payments = new List<ScheduledPayment>();
-            var basePaymentAmount = Math.Round(totalAmount / request.NumberOfPayments, 2);
-            var currentDate = request.FirstPaymentDate;
+            DateTime currentDate = firstPaymentDate;
 
-            for (int i = 0; i < request.NumberOfPayments; i++)
+            for (int i = 0; i < numberOfPayments; i++)
             {
-                decimal paymentAmount = basePaymentAmount;
-                if (i == request.NumberOfPayments - 1)
-                {
-                    // Adjust last payment to account for rounding differences
-                    paymentAmount = totalAmount - (basePaymentAmount * (request.NumberOfPayments - 1));
-                }
+                bool isLastPayment = (i == numberOfPayments - 1);
+                decimal interest = remainingPrincipal * ratePerPeriod;
+                decimal principal = isLastPayment
+                    ? remainingPrincipal
+                    : CalculatePMT(ratePerPeriod, numberOfPayments - i, remainingPrincipal) - interest;
 
-                var payment = new ScheduledPayment
+                payments.Add(new ScheduledPayment
                 {
                     DebtId = debt.Id,
-                    Amount = paymentAmount,
+                    Amount = principal + interest,
                     DueDate = currentDate,
-                    Status = PaymentStatus.Scheduled,
-                    PrincipalPortion = paymentAmount, // Will be recalculated when payment is processed
-                };
+                    PrincipalPortion = principal,
+                    InterestPortion = interest,
+                    Status = ScheduledPaymentStatus.Scheduled
+                });
 
-                payments.Add(payment);
-                currentDate = CalculateNextPaymentDate(currentDate, request.Frequency);
+                remainingPrincipal -= principal;
+                currentDate = GetNextPaymentDate(currentDate, frequency, isCustomInstallments, debt.DueDate, i + 1, numberOfPayments);
             }
 
             await _context.ScheduledPayment.AddRangeAsync(payments);
             await _context.SaveChangesAsync();
-
             return payments;
         }
 
+        private DateTime GetNextPaymentDate(DateTime currentDate, PaymentFrequency frequency, bool isCustom, DateTime dueDate, int paymentIndex, int totalPayments)
+        {
+            if (isCustom)
+            {
+                // Calculate equal intervals for custom installments
+                double totalDays = (dueDate - currentDate).TotalDays;
+                double interval = totalDays / (totalPayments - 1);
+                return currentDate.AddDays(interval * paymentIndex);
+            }
+
+            return frequency switch
+            {
+                PaymentFrequency.Weekly => currentDate.AddDays(7),
+                PaymentFrequency.Biweekly => currentDate.AddDays(14),
+                PaymentFrequency.Monthly => currentDate.AddMonths(1),
+                PaymentFrequency.Quarterly => currentDate.AddMonths(3),
+                _ => throw new ArgumentException("Invalid frequency")
+            };
+        }
+
+        private DateTime GetLastPaymentDate(DateTime startDate, PaymentFrequency frequency, int numberOfPayments)
+        {
+            return frequency switch
+            {
+                PaymentFrequency.Weekly => startDate.AddDays(7 * numberOfPayments),
+                PaymentFrequency.Biweekly => startDate.AddDays(14 * numberOfPayments),
+                PaymentFrequency.Monthly => startDate.AddMonths(numberOfPayments),
+                PaymentFrequency.Quarterly => startDate.AddMonths(3 * numberOfPayments),
+                _ => throw new ArgumentException("Invalid frequency")
+            };
+        }
+        private async Task<List<ScheduledPayment>> GenerateSimpleSchedule(
+        Debt debt, DateTime firstPaymentDate, int numberOfPayments,
+        PaymentFrequency frequency, bool includeInterest)
+        {
+            decimal totalAmount = debt.PrincipalAmount;
+
+            if (includeInterest)
+            {
+                // Get number of periods between dates based on calculation period
+                int periods = GetNumberOfPeriods(firstPaymentDate, debt.DueDate, debt.CalculationPeriod);
+
+                // Rate is already per period (e.g., 5% monthly = 5% per month)
+                decimal rate = debt.InterestRate / 100m;
+
+                totalAmount += debt.PrincipalAmount * rate * periods;
+            }
+
+            return await GenerateInstallments(debt, totalAmount, firstPaymentDate, numberOfPayments, frequency);
+        }
         public async Task<ScheduledPayment> ProcessPaymentAsync(string paymentId, decimal amount, string paymentMethodId)
         {
             var payment = await _context.ScheduledPayment
@@ -78,45 +189,76 @@ namespace IOU.Web.Services
                 .FirstOrDefaultAsync(p => p.Id == paymentId)
                 ?? throw new ArgumentException("Payment not found");
 
-            // Update debt calculations before processing payment
             await _debtService.UpdateDebtCalculations(payment.DebtId);
 
-            // Calculate payment portions
-            var (principalPortion, interestPortion, lateFeesPortion) = CalculatePaymentPortions(payment.Debt, amount);
-
-            payment.Status = PaymentStatus.Paid;
-            payment.PaymentDate = DateTime.UtcNow;
-            payment.Amount = amount;
-            payment.PrincipalPortion = principalPortion;
-            payment.InterestPortion = interestPortion;
-            payment.LateFeesPortion = lateFeesPortion;
-
-            // Update debt amounts
-            payment.Debt.PrincipalAmount -= principalPortion;
-            payment.Debt.AccumulatedInterest -= interestPortion;
-            payment.Debt.AccumulatedLateFees -= lateFeesPortion;
+            // For amortized payments, use pre-calculated portions
+            if (payment.InterestPortion > 0)
+            {
+                payment.Status = ScheduledPaymentStatus.Paid;
+                payment.PaymentDate = DateTime.UtcNow;
+                payment.Debt.PrincipalAmount -= payment.PrincipalPortion;
+                payment.Debt.AccumulatedInterest -= payment.InterestPortion;
+            }
+            else
+            {
+                // For simple payments, calculate portions dynamically
+                var (principal, interest, lateFees) = CalculatePaymentPortions(payment.Debt, amount);
+                payment.Amount = amount;
+                payment.PrincipalPortion = principal;
+                payment.InterestPortion = interest;
+                payment.LateFeesPortion = lateFees;
+                payment.Debt.PrincipalAmount -= principal;
+                payment.Debt.AccumulatedInterest -= interest;
+                payment.Debt.AccumulatedLateFees -= lateFees;
+            }
 
             await _context.SaveChangesAsync();
-
-            // Recalculate remaining payments if needed
             await RecalculatePaymentScheduleAsync(payment.DebtId);
-
             return payment;
         }
+        private decimal GetPeriodicInterestRate(Debt debt)
+        {
+            int periodsPerYear = debt.CalculationPeriod switch
+            {
+                InterestCalculationPeriod.Daily => 365,
+                InterestCalculationPeriod.Monthly => 12,
+                InterestCalculationPeriod.Quarterly => 4,
+                InterestCalculationPeriod.Annually => 1,
+                _ => throw new ArgumentException("Invalid calculation period")
+            };
+            return debt.InterestRate / 100m;
+        }
+        private int CalculateAutoPayments(DateTime firstDate, DateTime dueDate, PaymentFrequency frequency)
+        {
+            if (firstDate >= dueDate) return 0;
 
+            return frequency switch
+            {
+                PaymentFrequency.Weekly => (int)Math.Ceiling((dueDate - firstDate).TotalDays / 7),
+                PaymentFrequency.Biweekly => (int)Math.Ceiling((dueDate - firstDate).TotalDays / 14),
+                PaymentFrequency.Monthly => (int)Math.Ceiling((dueDate - firstDate).TotalDays / 30),
+                PaymentFrequency.Quarterly => (int)Math.Ceiling((dueDate - firstDate).TotalDays / 91),
+                PaymentFrequency.SemiAnnually => (int)Math.Ceiling((dueDate - firstDate).TotalDays / 182),
+                PaymentFrequency.Annually => (int)Math.Ceiling((dueDate - firstDate).TotalDays / 365),
+                _ => (int)Math.Ceiling((dueDate - firstDate).TotalDays / 30) // Default to monthly
+            };
+        }
+
+
+  
         public async Task UpdatePaymentStatusesAsync(string debtId)
         {
             var payments = await _context.ScheduledPayment
-                .Where(p => p.DebtId == debtId && p.Status != PaymentStatus.Paid)
+                .Where(p => p.DebtId == debtId && p.Status != ScheduledPaymentStatus.Paid)
                 .ToListAsync();
 
             var currentDate = DateTime.UtcNow;
 
             foreach (var payment in payments)
             {
-                if (payment.DueDate < currentDate && payment.Status != PaymentStatus.Overdue)
+                if (payment.DueDate < currentDate && payment.Status != ScheduledPaymentStatus.Overdue)
                 {
-                    payment.Status = PaymentStatus.Overdue;
+                    payment.Status = ScheduledPaymentStatus.Overdue;
                 }
             }
 
@@ -126,7 +268,7 @@ namespace IOU.Web.Services
         public async Task RecalculatePaymentScheduleAsync(string debtId)
         {
             var remainingPayments = await _context.ScheduledPayment
-                .Where(p => p.DebtId == debtId && p.Status == PaymentStatus.Scheduled)
+                .Where(p => p.DebtId == debtId && p.Status == ScheduledPaymentStatus.Scheduled)
                 .OrderBy(p => p.DueDate)
                 .ToListAsync();
 
@@ -181,35 +323,46 @@ namespace IOU.Web.Services
             return (principal, interest, lateFees);
         }
 
-        private DateTime CalculateNextPaymentDate(DateTime currentDate, PaymentFrequency frequency)
+        private async Task<List<ScheduledPayment>> GenerateInstallments(
+    Debt debt, decimal totalAmount, DateTime firstPaymentDate,
+    int numberOfPayments, PaymentFrequency frequency)
         {
-            return frequency switch
+            decimal basePayment = Math.Round(totalAmount / numberOfPayments, 2);
+            var payments = new List<ScheduledPayment>();
+            DateTime currentDate = firstPaymentDate;
+
+            for (int i = 0; i < numberOfPayments; i++)
             {
-                PaymentFrequency.Weekly => currentDate.AddDays(7),
-                PaymentFrequency.Biweekly => currentDate.AddDays(14),
-                PaymentFrequency.Monthly => currentDate.AddMonths(1),
-                PaymentFrequency.Quarterly => currentDate.AddMonths(3),
-                _ => throw new ArgumentException("Invalid frequency")
-            };
+                bool isLastPayment = (i == numberOfPayments - 1);
+                decimal amount = isLastPayment
+                    ? totalAmount - (basePayment * (numberOfPayments - 1))
+                    : basePayment;
+
+                payments.Add(new ScheduledPayment
+                {
+                    DebtId = debt.Id,
+                    Amount = amount,
+                    DueDate = currentDate,
+                    Status = ScheduledPaymentStatus.Scheduled,
+                    PrincipalPortion = 0, // Will be set by calling method if needed
+                    InterestPortion = 0   // Will be set by calling method if needed
+                });
+
+                currentDate = GetNextPaymentDate(currentDate, frequency);
+            }
+
+            await _context.ScheduledPayment.AddRangeAsync(payments);
+            await _context.SaveChangesAsync();
+            return payments;
         }
 
-        private DateTime CalculatePaymentEndDate(DateTime startDate, PaymentFrequency frequency, int numberOfPayments)
+        private decimal CalculatePMT(decimal ratePerPeriod, int numberOfPeriods, decimal principal)
         {
-            return frequency switch
-            {
-                PaymentFrequency.Weekly => startDate.AddDays(7 * numberOfPayments),
-                PaymentFrequency.Biweekly => startDate.AddDays(14 * numberOfPayments),
-                PaymentFrequency.Monthly => startDate.AddMonths(numberOfPayments),
-                PaymentFrequency.Quarterly => startDate.AddMonths(3 * numberOfPayments),
-                _ => throw new ArgumentException("Invalid frequency")
-            };
-        }
+            if (ratePerPeriod == 0)
+                return principal / numberOfPeriods;
 
-        private decimal ProjectInterestAmount(Debt debt, DateTime startDate, DateTime endDate)
-        {
-            // Simple projection - you might want to make this more sophisticated
-            var numberOfDays = (endDate - startDate).Days;
-            return _calculationService.CalculateInterest(debt, startDate.AddDays(numberOfDays));
+            decimal factor = (decimal)Math.Pow((double)(1 + ratePerPeriod), numberOfPeriods);
+            return (principal * ratePerPeriod * factor) / (factor - 1);
         }
     }
 }

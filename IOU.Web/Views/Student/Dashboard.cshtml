@@ -63,11 +63,11 @@
                                     </div>
                                     @if (debtInfo.NextPayment != null)
                                     {
-                                        <div class="detail-item next-payment @(debtInfo.NextPayment.Status == PaymentStatus.Overdue ? "text-danger" : "")">
+                                        <div class="detail-item next-payment @(debtInfo.NextPayment.Status == ScheduledPaymentStatus.Overdue ? "text-danger" : "")">
                                             <span class="label">Next Payment:</span>
                                             <span class="value">
                                                 @debtInfo.NextPayment.Amount.ToString("C") on @debtInfo.NextPayment.DueDate.ToShortDateString()
-                                                @if (debtInfo.NextPayment.Status == PaymentStatus.Overdue)
+                                                @if (debtInfo.NextPayment.Status == ScheduledPaymentStatus.Overdue)
                                                 {
                                                     <span class="badge bg-danger">Overdue</span>
                                                 }

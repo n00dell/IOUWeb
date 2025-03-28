@@ -148,6 +148,12 @@
     @if (User.Identity.IsAuthenticated)
     {
         <script>
+                    $.ajaxSetup({
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', status, error);
+                    // Optionally show a global error notification
+                }
+            });
             $(document).ready(function() {
                 // Notifications loading function
                 function loadNotifications() {
