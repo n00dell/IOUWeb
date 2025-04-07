@@ -1,0 +1,105 @@
+﻿@model IOU.Web.Models.ViewModels.PaymentHistoryViewModel
+
+<div class="report-container">
+    <h3 class="report-title">Payment History</h3>
+
+    <div class="summary-cards row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Paid</h5>
+                    <p class="card-text display-6">@Model.TotalPaid.ToString("C")</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Payments Made</h5>
+                    <p class="card-text display-6">@Model.PaymentCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Average Payment</h5>
+                    <p class="card-text display-6">@((Model.PaymentCount > 0 ? Model.TotalPaid / Model.PaymentCount : 0).ToString("C"))</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Payments by Month</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="paymentsByMonthChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Payments</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Lender</th>
+                                    <th>Debt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var payment in Model.Payments.Take(5))
+                                {
+                                    <tr>
+                                        <td>@payment.PaymentDate?.ToShortDateString()</td>
+                                        <td>@payment.Amount.ToString("C")</td>
+                                        <td>@payment.Debt.Lender.User.FullName</td>
+                                        <td>@payment.Debt.PrincipalAmount.ToString("C")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var ctx = document.getElementById('paymentsByMonthChart').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.PaymentsByMonth.Keys)),
+                    datasets: [{
+                        label: 'Amount Paid',
+                        data: @Html.Raw(Json.Serialize(Model.PaymentsByMonth.Values)),
+                        backgroundColor: '#4CAF50'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

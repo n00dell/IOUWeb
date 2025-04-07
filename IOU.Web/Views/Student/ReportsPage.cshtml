@@ -1,0 +1,155 @@
+﻿@model IOU.Web.Models.ViewModels.StudentReportsViewModel
+
+@{
+    ViewData["Title"] = "Student Reports";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="page-title">Student Reports</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="@Url.Action("Dashboard", "Student")">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Reports</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="reportsTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="debt-tab" data-bs-toggle="tab" data-bs-target="#debt" type="button" role="tab" aria-controls="debt" aria-selected="true">
+                        Debt Overview
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab" aria-controls="payments" aria-selected="false">
+                        Payment History
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab" aria-controls="upcoming" aria-selected="false">
+                        Upcoming Payments
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="reportsTabContent">
+                <div class="tab-pane fade show active" id="debt" role="tabpanel" aria-labelledby="debt-tab">
+                    @await Html.PartialAsync("_TotalDebtOverview", Model.TotalDebtOverview)
+                </div>
+                <div class="tab-pane fade" id="payments" role="tabpanel" aria-labelledby="payments-tab">
+                    @await Html.PartialAsync("_PaymentHistory", Model.PaymentHistory)
+                </div>
+                <div class="tab-pane fade" id="upcoming" role="tabpanel" aria-labelledby="upcoming-tab">
+                    @await Html.PartialAsync("_UpcomingPayments", Model.UpcomingPayments)
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize all charts when the page loads
+            initializeDebtOverviewChart();
+            initializePaymentHistoryChart();
+            initializeUpcomingPaymentsChart();
+
+            // When a tab is shown, re-render the chart to ensure proper display
+            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                var target = $(e.target).attr("href");
+
+                switch(target) {
+                    case "#debt":
+                        initializeDebtOverviewChart();
+                        break;
+                    case "#payments":
+                        initializePaymentHistoryChart();
+                        break;
+                    case "#upcoming":
+                        initializeUpcomingPaymentsChart();
+                        break;
+                }
+            });
+
+            function initializeDebtOverviewChart() {
+                var ctx = document.getElementById('debtStatusChart')?.getContext('2d');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: @Html.Raw(Json.Serialize(Model.TotalDebtOverview.DebtsByStatus.Keys)),
+                            datasets: [{
+                                data: @Html.Raw(Json.Serialize(Model.TotalDebtOverview.DebtsByStatus.Values)),
+                                backgroundColor: [
+                                    '#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                }
+            }
+
+            function initializePaymentHistoryChart() {
+                var ctx = document.getElementById('paymentsByMonthChart')?.getContext('2d');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: @Html.Raw(Json.Serialize(Model.PaymentHistory.PaymentsByMonth.Keys)),
+                            datasets: [{
+                                label: 'Amount Paid',
+                                data: @Html.Raw(Json.Serialize(Model.PaymentHistory.PaymentsByMonth.Values)),
+                                backgroundColor: '#4CAF50'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function initializeUpcomingPaymentsChart() {
+                var ctx = document.getElementById('upcomingByMonthChart')?.getContext('2d');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: @Html.Raw(Json.Serialize(Model.UpcomingPayments.PaymentsByMonth.Keys)),
+                            datasets: [{
+                                label: 'Amount Due',
+                                data: @Html.Raw(Json.Serialize(Model.UpcomingPayments.PaymentsByMonth.Values)),
+                                backgroundColor: '#FFC107'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+}

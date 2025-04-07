@@ -1,0 +1,107 @@
+﻿@model IOU.Web.Models.ViewModels.UpcomingPaymentsViewModel
+
+<div class="report-container">
+    <h3 class="report-title">Upcoming Payments</h3>
+
+    <div class="summary-cards row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Due</h5>
+                    <p class="card-text display-6">@Model.TotalDue.ToString("C")</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Payments Due</h5>
+                    <p class="card-text display-6">@Model.PaymentCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Average Payment</h5>
+                    <p class="card-text display-6">@((Model.PaymentCount > 0 ? Model.TotalDue / Model.PaymentCount : 0).ToString("C"))</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Payments by Month</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="upcomingByMonthChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Upcoming Payments</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Due Date</th>
+                                    <th>Amount</th>
+                                    <th>Lender</th>
+                                    <th>Debt</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var payment in Model.Payments.Take(5))
+                                {
+                                    <tr>
+                                        <td>@payment.DueDate.ToShortDateString()</td>
+                                        <td>@payment.Amount.ToString("C")</td>
+                                        <td>@payment.Debt.Lender.User.FullName</td>
+                                        <td>@payment.Debt.PrincipalAmount.ToString("C")</td>
+                                        <td><span class="badge @payment.Status.ToString().ToLower()">@payment.Status</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var ctx = document.getElementById('upcomingByMonthChart').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.PaymentsByMonth.Keys)),
+                    datasets: [{
+                        label: 'Amount Due',
+                        data: @Html.Raw(Json.Serialize(Model.PaymentsByMonth.Values)),
+                        backgroundColor: '#FFC107'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

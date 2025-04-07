@@ -2,8 +2,8 @@
 {
     public class StudentReportsViewModel
     {
-        public string ReportType { get; set; }
-        public Student Student { get; set; }
-        public List<object> Data { get; set; }
+        public TotalDebtOverviewViewModel TotalDebtOverview { get; set; }
+        public PaymentHistoryViewModel PaymentHistory { get; set; }
+        public UpcomingPaymentsViewModel UpcomingPayments { get; set; }
     }
 }

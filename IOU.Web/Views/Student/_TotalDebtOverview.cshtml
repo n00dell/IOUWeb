@@ -1,0 +1,234 @@
+﻿@model IOU.Web.Models.ViewModels.TotalDebtOverviewViewModel
+
+<div class="report-container">
+    <h3 class="report-title">Total Debt Overview</h3>
+
+    <!-- Debug Information (remove in production) -->
+    <div class="alert alert-secondary debug-info mb-3" style="display: none;">
+        <h5>Debug Data:</h5>
+        <pre>Model Null: @(Model == null)</pre>
+        <pre>Debts Exist: @(Model?.Debts?.Any() == true)</pre>
+        <pre>DebtsByStatus: @Json.Serialize(Model?.DebtsByStatus ?? new Dictionary<string, int>())</pre>
+    </div>
+
+    <div class="summary-cards row mb-4">
+        @if (Model?.Debts?.Any() == true)
+        {
+            <div class="col-md-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Total Debts</h5>
+                        <p class="card-text display-6">@Model.TotalDebts</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Total Owed</h5>
+                        <p class="card-text display-6">@Model.TotalOwed.ToString("C")</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Principal</h5>
+                        <p class="card-text display-6">@Model.TotalPrincipal.ToString("C")</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Interest</h5>
+                        <p class="card-text display-6">@Model.TotalInterest.ToString("C")</p>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="col-12">
+                <div class="alert alert-info">
+                    No debt records found for this student.
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model?.Debts?.Any() == true)
+    {
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5>Debts by Status</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.DebtsByStatus?.Any() == true)
+                        {
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="debtStatusChart"></canvas>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                No status data available for chart.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5>Recent Debts</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Lender</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Due Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var debt in Model.Debts.OrderByDescending(d => d.DueDate).Take(5))
+                                    {
+                                        <tr>
+                                            <td>@(debt.Lender?.User?.FullName ?? "N/A")</td>
+                                            <td>@debt.CurrentBalance.ToString("C")</td>
+                                            <td>
+                                                <span class="badge @GetStatusBadgeClass(debt.Status)">
+                                                    @debt.Status
+                                                </span>
+                                            </td>
+                                            <td>@debt.DueDate.ToShortDateString()</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@functions {
+    string GetStatusBadgeClass(DebtStatus status)
+    {
+        return status switch
+        {
+            DebtStatus.Active => "bg-success",
+            DebtStatus.Overdue => "bg-danger",
+            DebtStatus.Pending => "bg-warning text-dark",
+            DebtStatus.Paid => "bg-info",
+            DebtStatus.Declined => "bg-secondary",
+            DebtStatus.PendingChanges => "bg-warning text-dark",
+            DebtStatus.Cancelled => "bg-light text-dark",
+            _ => "bg-primary"
+        };
+    }
+}
+
+@section Scripts {
+    @if (Model?.DebtsByStatus?.Any() == true)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Debug output
+                console.log('Initializing debt status chart...');
+
+                try {
+                    const ctx = document.getElementById('debtStatusChart');
+                    if (!ctx) {
+                        console.error('Chart canvas element not found!');
+                        return;
+                    }
+
+                    const labels = @Html.Raw(Json.Serialize(Model.DebtsByStatus.Keys));
+                    const data = @Html.Raw(Json.Serialize(Model.DebtsByStatus.Values));
+
+                    console.log('Chart data:', { labels: labels, data: data });
+
+                    // Color palette for the chart
+                    const backgroundColors = [
+                        '#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0',
+                        '#00BCD4', '#8BC34A', '#E91E63', '#673AB7', '#009688'
+                    ];
+
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: backgroundColors,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 20,
+                                        font: {
+                                            size: 14
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label || '';
+                                            const value = context.raw || 0;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = Math.round((value / total) * 100);
+                                            return `${label}: ${value} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            },
+                            cutout: '60%'
+                        }
+                    });
+
+                    console.log('Chart initialized successfully');
+                } catch (error) {
+                    console.error('Error initializing chart:', error);
+                }
+            });
+        </script>
+    }
+    else
+    {
+        <script>
+            console.log('No debt status data available for chart rendering');
+        </script>
+    }
+}
+
+<style>
+    .debug-info {
+        font-size: 0.8rem;
+    }
+
+    .chart-container {
+        min-height: 300px;
+    }
+
+    .badge {
+        font-size: 0.85em;
+        padding: 0.35em 0.65em;
+    }
+</style>

@@ -1,45 +1,67 @@
 ﻿<!-- Views/Shared/_StudentMenu.cshtml -->
-<div class="student-menu">
-    <!-- Profile Summary -->
-    <div class="student-menu__profile mb-4">
-        <div class="d-flex align-items-center p-3">
-            <div class="student-menu__avatar">
-                <i class="fas fa-user-graduate fa-2x text-light"></i>
+<div class="student-menu bg-dark">
+    <!-- Profile Section -->
+    <div class="student-profile p-3 border-bottom border-secondary">
+        <div class="d-flex align-items-center">
+            <div class="student-avatar me-3">
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                     style="width: 48px; height: 48px;">
+                    <i class="fas fa-user-graduate fa-lg text-white"></i>
+                </div>
             </div>
-            <div class="student-menu__info ms-3">
-                <h6 class="mb-0 text-white">@User.Identity.Name</h6>
-                <small class="text-light-50">Student</small>
+            <div class="student-info">
+                <h6 class="mb-0 text-white text-truncate" style="max-width: 180px;">@User.Identity?.Name</h6>
+                <small class="text-muted d-block">Student</small>
             </div>
         </div>
     </div>
 
-    <!-- Main Navigation -->
-    <ul class="student-menu__nav list-unstyled">
-        <li class="student-menu__item">
+    <!-- Navigation Links -->
+    <ul class="nav flex-column">
+        <li class="nav-item">
             <a asp-controller="Student" asp-action="Dashboard"
-               class="student-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Dashboard" ? "active" : "")">
-                <i class="fas fa-tachometer-alt student-menu__icon"></i>
-                <span>Dashboard</span>
+               class="nav-link text-white @(ViewContext.RouteData.Values["Action"]?.ToString() == "Dashboard" ? "active bg-primary" : "")">
+                <i class="fas fa-tachometer-alt me-2"></i>
+                Dashboard
             </a>
         </li>
 
-        <li class="student-menu__section">
-            <span class="student-menu__section-text">Debt Management</span>
+        <li class="nav-item border-top border-secondary">
+            <small class="text-uppercase text-muted fw-bold d-block px-3 pt-3">Debt Management</small>
         </li>
 
-        <li class="student-menu__item">
+        <li class="nav-item">
             <a asp-controller="Student" asp-action="MyDebts"
-               class="student-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "MyDebts" ? "active" : "")">
-                <i class="fas fa-money-bill-wave student-menu__icon"></i>
-                <span>My Debts</span>
+               class="nav-link text-white @(ViewContext.RouteData.Values["Action"]?.ToString() == "MyDebts" ? "active bg-primary" : "")">
+                <i class="fas fa-money-bill-wave me-2"></i>
+                My Debts
             </a>
         </li>
 
-        <li class="student-menu__item">
+        <li class="nav-item">
             <a asp-controller="Student" asp-action="PaymentHistory"
-               class="student-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "PaymentHistory" ? "active" : "")">
-                <i class="fas fa-history student-menu__icon"></i>
-                <span>Payment History</span>
+               class="nav-link text-white @(ViewContext.RouteData.Values["Action"]?.ToString() == "PaymentHistory" ? "active bg-primary" : "")">
+                <i class="fas fa-history me-2"></i>
+                Payment History
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a asp-controller="Student" asp-action="ReportsPage"
+               class="nav-link text-white @(ViewContext.RouteData.Values["Action"]?.ToString() == "ReportsPage" ? "active bg-primary" : "")">
+                <i class="fas fa-chart-pie me-2"></i>
+                Reports
+            </a>
+        </li>
+
+        <li class="nav-item border-top border-secondary mt-auto">
+            <small class="text-uppercase text-muted fw-bold d-block px-3 pt-3">Account</small>
+        </li>
+
+        <li class="nav-item">
+            <a asp-controller="Account" asp-action="Logout" class="nav-link text-white">
+                <i class="fas fa-sign-out-alt me-2"></i>
+                Log Out
             </a>
         </li>
     </ul>

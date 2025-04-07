@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.Globalization;
 
 namespace IOU.Web.Controllers
 {
@@ -481,23 +482,160 @@ namespace IOU.Web.Controllers
             return View(viewModel);
         }
 
-       
-        private async Task<List<object>> GetTotalDebtOverview(string userId)
+        [Authorize(Roles = "Student")]
+        [HttpGet("ReportsPage")]
+        public async Task<IActionResult> ReportsPage()
         {
-            // Logic to get total debt overview
-            return new List<object>();
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+                return RedirectToAction("Error", "Home");
+
+            var model = new StudentReportsViewModel
+            {
+                TotalDebtOverview = await GetTotalDebtOverview(currentUser.Id),
+                PaymentHistory = await GetPaymentHistory(currentUser.Id),
+                UpcomingPayments = await GetUpcomingPayments(currentUser.Id)
+            };
+
+            return View(model);
         }
 
-        private async Task<List<object>> GetPaymentHistory(string userId)
+        [Authorize(Roles = "Student")]
+        [HttpGet("Reports")]
+        public async Task<IActionResult> Reports(string reportType)
         {
-            // Logic to get payment history
-            return new List<object>();
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+                return RedirectToAction("Error", "Home");
+
+            try
+            {
+                switch (reportType)
+                {
+                    case "TotalDebtOverview":
+                        var overview = await GetTotalDebtOverview(currentUser.Id);
+                        // Add debug logging here
+                        _logger.LogInformation("TotalDebtOverview data: {TotalDebts} debts, {TotalOwed} owed",
+                            overview.TotalDebts, overview.TotalOwed);
+                        return PartialView("_TotalDebtOverview", overview);
+                    case "PaymentHistory":
+                        return PartialView("_PaymentHistory", await GetPaymentHistory(currentUser.Id));
+                    case "UpcomingPayments":
+                        return PartialView("_UpcomingPayments", await GetUpcomingPayments(currentUser.Id));
+                    default:
+                        return BadRequest("Invalid report type");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating report");
+                return StatusCode(500, "Error generating report");
+            }
+        }
+        private async Task<TotalDebtOverviewViewModel> GetTotalDebtOverview(string userId)
+        {
+            _logger.LogInformation("Getting debt overview for user: {UserId}", userId);
+
+            var student = await _context.Student.FirstOrDefaultAsync(s => s.UserId == userId);
+            if (student == null)
+            {
+                _logger.LogWarning("Student not found for user: {UserId}", userId);
+                return new TotalDebtOverviewViewModel
+                {
+                    TotalDebts = 0,
+                    TotalOwed = 0,
+                    TotalPrincipal = 0,
+                    TotalInterest = 0,
+                    DebtsByStatus = new Dictionary<string, int>(),
+                    Debts = new List<Debt>()
+                };
+            }
+
+            _logger.LogInformation("Found student: {StudentId}", student.StudentId);
+
+            var debts = await _context.Debt
+                .Include(d => d.Lender)
+                .ThenInclude(l => l.User)
+                .Where(d => d.StudentUserId == userId)
+                .ToListAsync();
+
+            _logger.LogInformation("Found {DebtCount} debts for student", debts.Count);
+
+            var totalOwed = debts.Sum(d => d.CurrentBalance);
+            var totalPrincipal = debts.Sum(d => d.PrincipalAmount);
+            var totalInterest = totalOwed - totalPrincipal;
+
+            // In GetTotalDebtOverview, ensure proper initialization
+            var debtsByStatus = debts
+                .GroupBy(d => d.Status.ToString())
+                .ToDictionary(g => g.Key, g => g.Count()) ?? new Dictionary<string, int>();
+
+            _logger.LogInformation("Calculated overview - Owed: {TotalOwed}, Principal: {Principal}, Interest: {Interest}",
+                totalOwed, totalPrincipal, totalInterest);
+
+            return new TotalDebtOverviewViewModel
+            {
+                TotalDebts = debts.Count,
+                TotalOwed = totalOwed,
+                TotalPrincipal = totalPrincipal,
+                TotalInterest = totalInterest,
+                DebtsByStatus = debtsByStatus,
+                Debts = debts.OrderByDescending(d => d.DueDate).ToList()
+            };
         }
 
-        private async Task<List<object>> GetUpcomingPayments(string userId)
+        private async Task<PaymentHistoryViewModel> GetPaymentHistory(string userId)
         {
-            // Logic to get upcoming payments
-            return new List<object>();
+            var payments = await _context.ScheduledPayment
+                .Include(p => p.Debt)
+                    .ThenInclude(d => d.Lender)
+                .Where(p => p.Debt.StudentUserId == userId && p.Status == ScheduledPaymentStatus.Paid)
+                .OrderByDescending(p => p.PaymentDate)
+                .ToListAsync();
+
+            var totalPaid = payments.Sum(p => p.Amount);
+            var paymentCount = payments.Count;
+
+            return new PaymentHistoryViewModel
+            {
+                Payments = payments,
+                TotalPaid = totalPaid,
+                PaymentCount = paymentCount,
+                PaymentsByMonth = payments.GroupBy(p => new { p.PaymentDate.Value.Year, p.PaymentDate.Value.Month })
+                                         .OrderBy(g => g.Key.Year)
+                                         .ThenBy(g => g.Key.Month)
+                                         .ToDictionary(
+                                             g => $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(g.Key.Month)} {g.Key.Year}",
+                                             g => g.Sum(p => p.Amount))
+            };
+        }
+
+        private async Task<UpcomingPaymentsViewModel> GetUpcomingPayments(string userId)
+        {
+            var upcomingPayments = await _context.ScheduledPayment
+                .Include(p => p.Debt)
+                    .ThenInclude(d => d.Lender)
+                .Where(p => p.Debt.StudentUserId == userId &&
+                           p.Status != ScheduledPaymentStatus.Paid &&
+                           p.DueDate >= DateTime.Today)
+                .OrderBy(p => p.DueDate)
+                .ToListAsync();
+
+            var totalDue = upcomingPayments.Sum(p => p.Amount);
+            var paymentCount = upcomingPayments.Count;
+
+            return new UpcomingPaymentsViewModel
+            {
+                Payments = upcomingPayments,
+                TotalDue = totalDue,
+                PaymentCount = paymentCount,
+                PaymentsByMonth = upcomingPayments.GroupBy(p => new { p.DueDate.Year, p.DueDate.Month })
+                                                 .OrderBy(g => g.Key.Year)
+                                                 .ThenBy(g => g.Key.Month)
+                                                 .ToDictionary(
+                                                     g => $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(g.Key.Month)} {g.Key.Year}",
+                                                     g => g.Sum(p => p.Amount))
+            };
         }
     }
 

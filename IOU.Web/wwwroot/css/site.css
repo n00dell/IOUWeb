@@ -1,87 +1,192 @@
+/* ========== TABLE OF CONTENTS ==========
+1. GLOBAL STYLES
+2. COMMON COMPONENTS
+   2.1 Forms
+   2.2 Buttons
+   2.3 Cards
+   2.4 Tables
+   2.5 Badges
+   2.6 Dropdowns
+   2.7 Pagination
+   2.8 Notifications
+3. LAYOUT
+   3.1 Sidebar
+   3.2 Wrapper
+   3.3 Content
+4. RESPONSIVE ADJUSTMENTS
+5. ROLE-SPECIFIC STYLES
+   5.1 Student Dashboard
+   5.2 Lender Dashboard
+   5.3 Admin Dashboard
+6. REPORTS
+========== */
+
+/* ========== 1. GLOBAL STYLES ========== */
 html {
-  font-size: 14px;
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+    html {
+        font-size: 16px;
+    }
 }
 
 body {
-  margin-bottom: 60px;
+    margin-bottom: 60px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+/* ========== 2. COMMON COMPONENTS ========== */
+/* 2.1 Forms */
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+.form-floating > .form-control-plaintext::placeholder,
+.form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
 }
-/* Add to site.css */
-/* Sidebar Styles */
-.wrapper {
+
+.form-floating > .form-control-plaintext:focus::placeholder,
+.form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+/* 2.2 Buttons */
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+    .btn-primary:hover {
+        background-color: #0069d9;
+        border-color: #0062cc;
+    }
+
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+    .btn-danger:hover {
+        background-color: #dc2626;
+    }
+
+/* 2.3 Cards */
+.card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.detail-item {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.label {
+    color: #666;
+    font-weight: 500;
+}
+
+.value {
+    font-weight: 600;
+}
+
+/* 2.4 Tables */
+.table {
     width: 100%;
-    align-items: stretch;
+    border-collapse: collapse;
 }
 
-#sidebar {
-    min-width: 250px;
-    max-width: 250px;
-    min-height: 100vh;
-    transition: all 0.3s;
+    .table th {
+        background-color: #f8f9fa;
+        color: #495057;
+        font-weight: 600;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+.table-responsive {
+    max-height: 300px;
+    overflow-y: auto;
 }
 
-    #sidebar.active {
-        margin-left: -250px;
-    }
-
-    #sidebar .sidebar-header {
-        padding: 20px;
-        background: #343a40;
-    }
-
-    #sidebar ul.components {
-        padding: 20px 0;
-    }
-
-    #sidebar ul li a {
-        padding: 10px 20px;
-        font-size: 1.1em;
-        display: block;
-        color: #fff;
-        text-decoration: none;
-    }
-
-        #sidebar ul li a:hover {
-            background: #4b545c;
-        }
-
-    #sidebar ul li.active > a {
-        background: #007bff;
-    }
-
-/* Content area */
-#content {
-    width: 100%;
-    padding: 20px;
-    min-height: 100vh;
-    transition: all 0.3s;
+/* 2.5 Badges */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
 }
 
-/* Notification styles */
+.badge {
+    font-size: 0.8em;
+    padding: 5px 10px;
+    border-radius: 12px;
+}
+
+    .pending, .badge.pending {
+        background-color: #FFF3CD;
+        color: #856404;
+    }
+
+    .active, .badge.active {
+        background-color: #D4EDDA;
+        color: #155724;
+    }
+
+    .overdue, .badge.overdue {
+        background-color: #F8D7DA;
+        color: #721C24;
+    }
+
+    .paid, .badge.paid {
+        background-color: #D1ECF1;
+        color: #0C5460;
+    }
+
+/* 2.6 Dropdowns */
+.dropdown-menu {
+    margin-top: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+}
+
+    .dropdown-item:active {
+        background-color: #007bff;
+        color: white;
+    }
+
+.dropdown-divider {
+    margin: 0.5rem 0;
+}
+
+/* 2.7 Pagination */
+.pagination {
+    margin-bottom: 0;
+}
+
+/* 2.8 Notifications */
 .notification-count {
     top: -5px;
     right: -5px;
@@ -103,37 +208,150 @@ body {
         background-color: #f8f9fa;
     }
 
-/* Responsive */
-@media (max-width: 768px) {
-    #sidebar {
+    .notification-item:hover {
+        background-color: #e9ecef;
+    }
+
+    .notification-item .notification-time {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+
+    .notification-item .notification-title {
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .notification-item .notification-message {
+        font-size: 0.85rem;
+        color: #495057;
+        line-height: 1.4;
+    }
+
+.unread {
+    border-left: 4px solid #007bff;
+}
+
+/* ========== 3. LAYOUT ========== */
+.navbar {
+    background: #1e293b !important;
+    padding: 0.5rem 1rem !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+    .navbar .dropdown-toggle {
+        color: #e2e8f0 !important;
+        padding: 0.5rem 1rem !important;
+        display: flex !important;
+        align-items: center;
+    }
+
+    .navbar .dropdown-menu {
+        border: none !important;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        margin-top: 0.5rem !important;
+    }
+
+    .navbar .dropdown-item {
+        padding: 0.75rem 1.5rem !important;
+        color: #1e293b !important;
+    }
+
+        .navbar .dropdown-item:hover {
+            background: #f1f5f9 !important;
+            color: #1e293b !important;
+        }
+
+    .navbar .notification-count {
+        font-size: 0.65rem !important;
+        padding: 3px 6px !important;
+    }
+
+    .navbar .fa-user-circle {
+        font-size: 1.5rem !important;
+        color: #4CAF50 !important;
+    }
+
+    .navbar .dropdown-toggle .user-details {
+        display: flex;
+        flex-direction: column;
+        margin-left: 0.75rem;
+    }
+
+    .navbar .dropdown-toggle .user-name {
+        font-weight: 500;
+        color: white !important;
+    }
+
+    .navbar .dropdown-toggle .user-role {
+        font-size: 0.75rem;
+        color: #94a3b8 !important;
+        text-transform: capitalize;
+    }
+/* 3.1 Sidebar */
+#sidebar {
+    min-width: 250px;
+    max-width: 250px;
+    min-height: 100vh;
+    transition: all 0.3s;
+    background: #2c3e50;
+    color: #fff;
+}
+
+    #sidebar.active {
         margin-left: -250px;
     }
 
-        #sidebar.active {
-            margin-left: 0;
-        }
-}
-
-/* Profile Dropdown Styles */
-.dropdown-menu {
-    margin-top: 0.5rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-}
-
-.dropdown-item {
-    padding: 0.5rem 1rem;
-}
-
-    .dropdown-item:active {
-        background-color: #007bff;
-        color: white;
+    #sidebar .sidebar-header {
+        padding: 20px;
+        background: #233140;
     }
 
-.dropdown-divider {
-    margin: 0.5rem 0;
+    #sidebar ul.components {
+        padding: 20px 0;
+        border-bottom: 1px solid #47748b;
+    }
+
+    #sidebar ul li a {
+        padding: 10px 20px;
+        font-size: 1.1em;
+        display: block;
+        color: #fff;
+        text-decoration: none;
+    }
+
+        #sidebar ul li a:hover {
+            background: #4b545c;
+        }
+
+    #sidebar ul li.active > a {
+        background: #007bff;
+    }
+    #sidebarCollapse {
+    background: transparent !important;
+    border: none !important;
+    font-size: 1.25rem;
+    color: white !important;
+    margin-right: 1rem;
 }
-.unread {
-    border-left: 4px solid #007bff;
+
+#sidebarCollapse:hover {
+    color: #4CAF50 !important;
+}
+/* 3.2 Wrapper */
+.wrapper {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+}
+
+/* 3.3 Content */
+#content {
+    width: 100%;
+    padding: 20px;
+    min-height: 100vh;
+    transition: all 0.3s;
 }
 
 .list-group-item {
@@ -144,272 +362,62 @@ body {
         background-color: rgba(0,0,0,0.02);
     }
 
-.pagination {
-    margin-bottom: 0;
-}
-.dashboard-container {
-    padding: 20px;
-}
-
-.summary-card {
-    background: linear-gradient(135deg, #4CAF50, #2196F3);
-    color: white;
-    border: none;
-    border-radius: 10px;
-}
-
-.total-amount {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 15px;
-}
-
-.amount {
-    font-size: 24px;
-    font-weight: bold;
-}
-
-.debt-card {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
-    border-radius: 8px;
-}
-
-    .debt-card:hover {
-        transform: translateY(-5px);
-    }
-
-.debt-details {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.detail-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.label {
-    color: #666;
-    font-weight: 500;
-}
-
-.value {
-    font-weight: 600;
-}
-
-.status-badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-.pending {
-    background-color: #FFF3CD;
-    color: #856404;
-}
-
-.active {
-    background-color: #D4EDDA;
-    color: #155724;
-}
-
-.overdue {
-    background-color: #F8D7DA;
-    color: #721C24;
-}
-
-.paid {
-    background-color: #D1ECF1;
-    color: #0C5460;
-}
-
-/* lender-dashboard.css */
-
-/* Dashboard Container */
-.lender-dashboard {
-    padding: 20px;
-}
-
-/* Summary Card */
-.lender-summary {
-    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-    color: white;
-    border: none;
-    border-radius: 10px;
-}
-
-.lender-summary__total {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 15px;
-}
-
-.lender-summary__amount {
-    font-size: 24px;
-    font-weight: bold;
-}
-
-/* Quick Actions */
-.lender-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.lender-actions__item {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    color: #333;
-    text-decoration: none;
-    transition: all 0.3s ease;
-}
-
-    .lender-actions__item:hover {
-        background-color: #FF6B6B;
-        color: white;
-        transform: translateX(5px);
-    }
-
-.lender-actions__icon {
-    font-size: 1.2em;
-    margin-right: 12px;
-    width: 24px;
-    text-align: center;
-}
-
-/* Recent Activities */
-.lender-activities {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.lender-activities__item {
-    display: flex;
-    align-items: start;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-}
-
-    .lender-activities__item:last-child {
-        border-bottom: none;
-    }
-
-.lender-activities__icon {
-    margin-right: 12px;
-    margin-top: 4px;
-}
-
-.lender-activities__content {
-    flex: 1;
-}
-
-.lender-activities__text {
-    color: #333;
-    margin-bottom: 0;
-}
-
-/* Debt Cards */
-.lender-debt-card {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
-    border-radius: 8px;
-    border: none;
-}
-
-    .lender-debt-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-
-.lender-debt-card__header {
-    background-color: #FF6B6B;
-    color: white;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    padding: 15px;
-}
-
-.lender-debt-card__details {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.lender-debt-card__item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
-}
-
-    .lender-debt-card__item:last-child {
-        border-bottom: none;
-    }
-
-.lender-debt-card__label {
-    color: #666;
-    font-weight: 500;
-}
-
-.lender-debt-card__value {
-    font-weight: 600;
-    color: #333;
-}
-
-/* Status Badges */
-.lender-status-badge {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.9em;
-    font-weight: 500;
-}
-
-.lender-status-badge--pending {
-    background-color: #FFF3CD;
-    color: #856404;
-}
-
-.lender-status-badge--active {
-    background-color: #D4EDDA;
-    color: #155724;
-}
-
-.lender-status-badge--overdue {
-    background-color: #F8D7DA;
-    color: #721C24;
-}
-
-.lender-status-badge--paid {
-    background-color: #D1ECF1;
-    color: #0C5460;
-}
-
-/* Common Card Styles */
-.lender-card {
-    border-radius: 8px;
-    border: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.lender-card__header {
-    background-color: #FF6B6B;
-    color: white;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-}
-
-/* Responsive */
+/* ========== 4. RESPONSIVE ADJUSTMENTS ========== */
 @media (max-width: 768px) {
+    #sidebar {
+        margin-left: -250px;
+    }
+
+        #sidebar.active {
+            margin-left: 0;
+        }
+
+    .admin-sidebar {
+        margin-left: -250px;
+    }
+
+        .admin-sidebar.active {
+            margin-left: 0;
+        }
+
+    .admin-main-content {
+        margin-left: 0;
+    }
+
+    .admin-card-body {
+        padding: 1rem;
+    }
+
+    .admin-summary {
+        padding: 1rem;
+    }
+
+    .admin-actions__item {
+        padding: 0.5rem;
+    }
+
+    .admin-activities__item {
+        padding: 0.5rem 0;
+    }
+
+    .student-dashboard__row {
+        flex-direction: column;
+    }
+
+    .student-menu__section-text {
+        display: none;
+    }
+
+    .student-menu__link {
+        padding: 0.75rem 1rem;
+    }
+
+    .student-summary__total {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
     .lender-dashboard__row {
         flex-direction: column;
     }
@@ -428,134 +436,99 @@ body {
         gap: 10px;
     }
 }
-/* Lender Menu Styles */
-.lender-menu {
-    width: 100%;
-    color: white;
-}
 
-.lender-menu__nav {
-    margin: 0;
-    padding: 0;
-}
+/* ========== 5. ROLE-SPECIFIC STYLES ========== */
+/* 5.1 Student Dashboard */
+/* ========== 5.1 Student Dashboard ========== */
+/* Add these under the existing student-dashboard styles */
 
-.lender-menu__item {
-    margin: 4px 0;
-}
-
-.lender-menu__link {
-    display: flex;
-    align-items: center;
-    padding: 12px 20px;
-    color: rgba(255,255,255,0.8);
-    text-decoration: none;
-    transition: all 0.3s ease;
-}
-
-    .lender-menu__link:hover {
-        color: #fff;
-        background-color: rgba(255,255,255,0.1);
-        text-decoration: none;
-    }
-
-.lender-menu__icon {
-    width: 20px;
-    margin-right: 10px;
-    text-align: center;
-}
-
-/* Sidebar specific styles */
-#sidebar {
-    min-width: 250px;
-    max-width: 250px;
-    min-height: 100vh;
-    background: #2c3e50;
-    color: #fff;
-    transition: all 0.3s;
-}
-
-    #sidebar .sidebar-header {
-        padding: 20px;
-        background: #233140;
-    }
-
-    #sidebar ul.components {
-        padding: 20px 0;
-        border-bottom: 1px solid #47748b;
-    }
-
-    #sidebar.active {
-        margin-left: -250px;
-    }
-
-@media (max-width: 768px) {
-    #sidebar {
-        margin-left: -250px;
-    }
-
-        #sidebar.active {
-            margin-left: 0;
-        }
-}
-/* Student-specific styles */
-/* Menu Structure */
 .student-menu {
-    width: 100%;
-    color: white;
-}
-
-.student-menu__profile {
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.student-menu__section {
-    padding: 1rem 1.5rem 0.5rem;
-}
-
-.student-menu__section-text {
-    color: #4CAF50;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 600;
-}
-
-.student-menu__nav {
-    margin: 0;
-    padding: 0;
-}
-
-.student-menu__item {
-    margin: 4px 0;
-}
-
-.student-menu__link {
+    background: #1e293b !important; /* Darker background for better contrast */
+    min-height: 100vh;
     display: flex;
+    flex-direction: column;
+}
+
+.student-profile {
+    padding: 1.5rem !important;
+    border-bottom: 1px solid #334155 !important;
+}
+
+.student-avatar {
+    flex-shrink: 0;
+}
+
+    .student-avatar div {
+        width: 56px !important; /* Slightly larger avatar */
+        height: 56px !important;
+        background: #4CAF50 !important; /* Match theme color */
+    }
+
+.student-info {
+    flex: 1;
+    min-width: 0; /* Prevent text overflow */
+}
+
+    .student-info h6 {
+        font-size: 1rem;
+        color: white !important;
+        font-weight: 600;
+        margin-bottom: 0.25rem !important;
+    }
+
+    .student-info small {
+        color: #94a3b8 !important; /* Lighter text color for role */
+        font-size: 0.85em;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+.student-menu .nav-link {
+    padding: 0.875rem 1.5rem !important;
+    color: #cbd5e1 !important;
+    font-weight: 500;
+    display: flex !important;
     align-items: center;
-    padding: 0.75rem 1.5rem;
-    color: rgba(255,255,255,0.8);
-    text-decoration: none;
     transition: all 0.3s ease;
+    border-left: 3px solid transparent;
 }
 
-    .student-menu__link:hover {
-        color: #fff;
-        background-color: rgba(255,255,255,0.1);
-        text-decoration: none;
+    .student-menu .nav-link:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        color: white !important;
+        border-left-color: #4CAF50;
     }
 
-    .student-menu__link.active {
-        color: #fff;
-        background-color: #4CAF50;
+    .student-menu .nav-link.active {
+        background: rgba(76, 175, 80, 0.15) !important;
+        color: white !important;
+        border-left-color: #4CAF50;
     }
 
-.student-menu__icon {
-    width: 20px;
-    margin-right: 10px;
-    text-align: center;
+    .student-menu .nav-link i {
+        width: 24px;
+        font-size: 1.1em;
+        margin-right: 12px;
+    }
+
+.student-menu .border-secondary {
+    border-color: #334155 !important;
 }
 
-/* Student Dashboard Specific */
+.student-menu small.text-muted {
+    color: #64748b !important; /* Adjusted section header color */
+    font-size: 0.75em;
+    letter-spacing: 1px;
+    padding: 0.75rem 1.5rem 0.5rem !important;
+}
+
+.student-menu .nav-item:last-child {
+    margin-top: auto; /* Push logout to bottom */
+    padding-top: 1rem;
+    border-top: 1px solid #334155;
+}
+
 .student-dashboard {
     padding: 20px;
 }
@@ -579,7 +552,6 @@ body {
     font-weight: bold;
 }
 
-/* Student Debt Cards */
 .student-debt-card {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     transition: transform 0.2s;
@@ -628,7 +600,6 @@ body {
     color: #333;
 }
 
-/* Student Status Badges */
 .student-status-badge {
     padding: 6px 12px;
     border-radius: 20px;
@@ -656,7 +627,6 @@ body {
     color: #0C5460;
 }
 
-/* Common Student Card Styles */
 .student-card {
     border-radius: 8px;
     border: none;
@@ -670,48 +640,313 @@ body {
     border-top-right-radius: 8px;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .student-dashboard__row {
-        flex-direction: column;
+/* 5.2 Lender Dashboard */
+.lender-dashboard {
+    padding: 20px;
+}
+
+.lender-summary {
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: white;
+    border: none;
+    border-radius: 10px;
+}
+
+.lender-summary__total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.lender-summary__amount {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.lender-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.lender-actions__item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    color: #333;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+    .lender-actions__item:hover {
+        background-color: #FF6B6B;
+        color: white;
+        transform: translateX(5px);
     }
 
-    .student-menu__section-text {
+.lender-actions__icon {
+    font-size: 1.2em;
+    margin-right: 12px;
+    width: 24px;
+    text-align: center;
+}
+
+.lender-activities {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.lender-activities__item {
+    display: flex;
+    align-items: start;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+    .lender-activities__item:last-child {
+        border-bottom: none;
+    }
+
+.lender-activities__icon {
+    margin-right: 12px;
+    margin-top: 4px;
+}
+
+.lender-activities__content {
+    flex: 1;
+}
+
+.lender-activities__text {
+    color: #333;
+    margin-bottom: 0;
+}
+
+.lender-debt-card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    border-radius: 8px;
+    border: none;
+}
+
+    .lender-debt-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+.lender-debt-card__header {
+    background-color: #FF6B6B;
+    color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 15px;
+}
+
+.lender-debt-card__details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lender-debt-card__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+    .lender-debt-card__item:last-child {
+        border-bottom: none;
+    }
+
+.lender-debt-card__label {
+    color: #666;
+    font-weight: 500;
+}
+
+.lender-debt-card__value {
+    font-weight: 600;
+    color: #333;
+}
+
+.lender-status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.lender-status-badge--pending {
+    background-color: #FFF3CD;
+    color: #856404;
+}
+
+.lender-status-badge--active {
+    background-color: #D4EDDA;
+    color: #155724;
+}
+
+.lender-status-badge--overdue {
+    background-color: #F8D7DA;
+    color: #721C24;
+}
+
+.lender-status-badge--paid {
+    background-color: #D1ECF1;
+    color: #0C5460;
+}
+
+.lender-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.lender-card__header {
+    background-color: #FF6B6B;
+    color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+/* ========== Lender Menu Styles ========== */
+.lender-menu {
+    background: #1e293b;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.lender-menu__profile {
+    border-bottom: 1px solid #334155;
+    padding: 1.5rem;
+}
+
+.lender-menu__avatar {
+    width: 56px;
+    height: 56px;
+    background: #FF6B6B;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+    .lender-menu__avatar i {
+        font-size: 1.5rem;
+    }
+
+.lender-menu__info h6 {
+    color: white !important;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lender-menu__info small {
+    color: #94a3b8 !important;
+    font-size: 0.85em;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lender-menu__nav {
+    padding: 0;
+    margin: 0;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.lender-menu__section {
+    padding: 0.75rem 1.5rem 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.lender-menu__section-text {
+    color: #64748b !important;
+    font-size: 0.75em;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+    display: block;
+}
+
+.lender-menu__item {
+    margin: 0;
+}
+
+.lender-menu__link {
+    padding: 0.875rem 1.5rem !important;
+    color: #cbd5e1 !important;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+    .lender-menu__link:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        color: white !important;
+        border-left-color: #FF6B6B;
+    }
+
+    .lender-menu__link.active {
+        background: rgba(255, 107, 107, 0.15) !important;
+        color: white !important;
+        border-left-color: #FF6B6B;
+    }
+
+.lender-menu__icon {
+    width: 24px;
+    font-size: 1.1em;
+    margin-right: 12px;
+    text-align: center;
+}
+
+/* Make the last section push content up */
+.lender-menu__nav > li:last-child {
+    margin-top: auto;
+    padding-bottom: 1rem;
+}
+
+/* Add a subtle border between sections */
+.lender-menu__section + .lender-menu__item .lender-menu__link {
+    border-top: 1px solid #334155;
+    margin-top: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .lender-menu__info h6 {
+        max-width: 120px;
+    }
+
+    .lender-menu__link {
+        padding: 0.75rem 1rem !important;
+    }
+
+    .lender-menu__section-text {
         display: none;
     }
-
-    .student-menu__link {
-        padding: 0.75rem 1rem;
-    }
-
-    .student-summary__total {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-}
-/* ========== GLOBAL STYLES ========== */
-html {
-    font-size: 14px;
 }
 
-@media (min-width: 768px) {
-    html {
-        font-size: 16px;
-    }
-}
-
-body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: #f8fafc;
-    color: #1e293b;
-}
-
-/* ========== ADMIN SPECIFIC STYLES ========== */
-/* Admin Sidebar */
+/* 5.3 Admin Dashboard */
 .admin-sidebar {
-    background: #1a2335; /* Dark blue-gray background */
+    background: #1a2335;
     min-width: 250px;
     max-width: 250px;
     min-height: 100vh;
@@ -720,7 +955,7 @@ body {
 
 .admin-sidebar-header {
     padding: 1.5rem;
-    background: #151d2b; /* Slightly darker header */
+    background: #151d2b;
     border-bottom: 1px solid #2a3547;
 }
 
@@ -731,7 +966,6 @@ body {
     margin: 0;
 }
 
-/* Admin Menu */
 .admin-menu-list {
     list-style: none;
     padding: 0;
@@ -756,19 +990,19 @@ body {
     .admin-menu-link:hover {
         color: #fff;
         background: rgba(255, 255, 255, 0.05);
-        border-left-color: #6366f1; /* Indigo accent */
+        border-left-color: #6366f1;
     }
 
     .admin-menu-link.active {
         color: #fff;
-        background: rgba(99, 102, 241, 0.15); /* Indigo background */
+        background: rgba(99, 102, 241, 0.15);
         border-left-color: #6366f1;
     }
 
 .admin-menu-icon {
     width: 1.25rem;
     margin-right: 0.75rem;
-    color: #6366f1; /* Indigo icon color */
+    color: #6366f1;
     text-align: center;
 }
 
@@ -777,22 +1011,19 @@ body {
     font-weight: 500;
 }
 
-/* Admin Main Content */
 .admin-main-content {
-    background: #f8fafc; /* Light gray background */
+    background: #f8fafc;
     min-height: 100vh;
     margin-left: 250px;
     transition: all 0.3s;
 }
 
-/* Admin Top Navigation */
 .admin-top-nav {
     background: #fff;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     padding: 0.75rem 1.5rem;
 }
 
-/* Admin Cards */
 .admin-card {
     border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
@@ -814,7 +1045,6 @@ body {
     padding: 1.5rem;
 }
 
-/* Admin Summary Cards */
 .admin-summary {
     border-radius: 0.5rem;
     color: white;
@@ -833,7 +1063,6 @@ body {
     font-weight: 600;
 }
 
-/* Admin Actions */
 .admin-actions {
     display: flex;
     flex-direction: column;
@@ -862,7 +1091,6 @@ body {
     margin-right: 0.75rem;
 }
 
-/* Admin Activities */
 .admin-activities {
     display: flex;
     flex-direction: column;
@@ -890,7 +1118,6 @@ body {
     color: #1e293b;
 }
 
-/* Admin Tables */
 .admin-table {
     width: 100%;
     border-collapse: collapse;
@@ -913,7 +1140,6 @@ body {
         vertical-align: middle;
     }
 
-/* Admin Status Badges */
 .admin-status-badge {
     padding: 4px 8px;
     border-radius: 12px;
@@ -941,7 +1167,6 @@ body {
     color: #1e40af;
 }
 
-/* Admin Buttons */
 .admin-btn-primary {
     background: #6366f1;
     border-color: #6366f1;
@@ -958,7 +1183,6 @@ body {
         border-color: #4f46e5;
     }
 
-/* Admin Pagination */
 .admin-pagination {
     display: flex;
     justify-content: flex-end;
@@ -974,121 +1198,84 @@ body {
         color: #6366f1;
     }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .admin-sidebar {
-        margin-left: -250px;
-    }
-
-        .admin-sidebar.active {
-            margin-left: 0;
-        }
-
-    .admin-main-content {
-        margin-left: 0;
-    }
-
-    .admin-card-body {
-        padding: 1rem;
-    }
-
-    .admin-summary {
-        padding: 1rem;
-    }
-
-    .admin-actions__item {
-        padding: 0.5rem;
-    }
-
-    .admin-activities__item {
-        padding: 0.5rem 0;
-    }
+/* ========== 6. REPORTS ========== */
+.report-container {
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
 }
 
-/* Notification styling */
-.notification-dropdown {
-    width: 350px;
-    max-height: 60vh;
-    overflow-y: auto;
+.report-title {
+    color: #4CAF50;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
 }
 
-.notification-item {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #dee2e6;
-    transition: background-color 0.2s;
+.summary-cards .card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
 }
 
-    .notification-item.unread {
-        background-color: #f8f9fa;
+    .summary-cards .card:hover {
+        transform: translateY(-5px);
     }
 
-    .notification-item:hover {
-        background-color: #e9ecef;
-    }
-
-    .notification-item .notification-time {
-        font-size: 0.75rem;
-        color: #6c757d;
-    }
-
-    .notification-item .notification-title {
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-    }
-
-    .notification-item .notification-message {
-        font-size: 0.85rem;
-        color: #495057;
-        line-height: 1.4;
-    }
-
-/* Admin-specific table styles */
-.admin-table {
-    width: 100%;
-    border-collapse: collapse;
+.summary-cards .card-body {
+    padding: 15px;
 }
 
-    .admin-table th,
-    .admin-table td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid #e2e8f0;
-    }
+.summary-cards .card-title {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 10px;
+}
 
-    .admin-table th {
-        background-color: #f8fafc;
-        font-weight: 600;
-        color: #4a5568;
-    }
+.summary-cards .card-text {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+}
 
-    .admin-table tr:hover {
-        background-color: #f8fafc;
-    }
+.dashboard-container {
+    padding: 20px;
+}
 
-/* Button styles */
-.admin-btn-primary {
-    background-color: #6366f1;
+.summary-card {
+    background: linear-gradient(135deg, #4CAF50, #2196F3);
     color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    text-decoration: none;
-    transition: background-color 0.3s;
+    border: none;
+    border-radius: 10px;
 }
 
-    .admin-btn-primary:hover {
-        background-color: #4f46e5;
-    }
-
-.btn-danger {
-    background-color: #ef4444;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    text-decoration: none;
-    transition: background-color 0.3s;
+.total-amount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
 }
 
-    .btn-danger:hover {
-        background-color: #dc2626;
+.amount {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.debt-card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    border-radius: 8px;
+}
+
+    .debt-card:hover {
+        transform: translateY(-5px);
     }
+
+.debt-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
