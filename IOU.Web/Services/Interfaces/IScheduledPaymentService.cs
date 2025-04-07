@@ -2,7 +2,7 @@
 
 namespace IOU.Web.Services.Interfaces
 {
-    public interface ISchedulePaymentService
+    public interface IScheduledPaymentService
     {
         Task<List<ScheduledPayment>> GeneratePaymentScheduleAsync(CreateScheduledPaymentsRequest request);
         Task<ScheduledPayment> GetScheduledPaymentAsync(string id);
@@ -10,5 +10,7 @@ namespace IOU.Web.Services.Interfaces
         Task<ScheduledPayment> ProcessPaymentAsync(string paymentId, decimal amount, string paymentMethodId);
         Task UpdatePaymentStatusesAsync(string debtId);
         Task RecalculatePaymentScheduleAsync(string debtId);
+        Task ProcessPaymentAgainstSchedule(Payment payment);
+        (decimal principal, decimal interest, decimal lateFees) CalculatePaymentPortions(Debt debt, decimal paymentAmount);
     }
 }

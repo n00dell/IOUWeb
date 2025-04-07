@@ -4,6 +4,7 @@ using IOU.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOU.Web.Migrations
 {
     [DbContext(typeof(IOUWebContext))]
-    partial class IOUWebContextModelSnapshot : ModelSnapshot
+    [Migration("20250405102439_updateenumstat")]
+    partial class updateenumstat
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -387,6 +390,79 @@ namespace IOU.Web.Migrations
                     b.ToTable("Notification");
                 });
 
+            modelBuilder.Entity("IOU.Web.Models.Payment", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CheckoutRequestID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DebtId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("InitiatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MpesaReceiptNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MpesaTransactionId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("PaymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResultCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResultDescription")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ScheduledPaymentId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckoutRequestID")
+                        .IsUnique();
+
+                    b.HasIndex("DebtId");
+
+                    b.HasIndex("ScheduledPaymentId");
+
+                    b.HasIndex("Status", "CompletedAt");
+
+                    b.ToTable("Payments");
+                });
+
             modelBuilder.Entity("IOU.Web.Models.ScheduledPayment", b =>
                 {
                     b.Property<string>("Id")
@@ -629,69 +705,6 @@ namespace IOU.Web.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Payment", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("CheckoutRequestID")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DebtId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("MpesaReceiptNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("PaymentDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
-
-                    b.Property<string>("ResultDescription")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("ScheduledPaymentId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .IsConcurrencyToken()
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CheckoutRequestID")
-                        .IsUnique();
-
-                    b.HasIndex("DebtId");
-
-                    b.HasIndex("ScheduledPaymentId");
-
-                    b.HasIndex("Status", "UpdatedAt");
-
-                    b.ToTable("Payments");
-                });
-
             modelBuilder.Entity("IOU.Web.Models.Debt", b =>
                 {
                     b.HasOne("IOU.Web.Models.Lender", "Lender")
@@ -786,6 +799,24 @@ namespace IOU.Web.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("IOU.Web.Models.Payment", b =>
+                {
+                    b.HasOne("IOU.Web.Models.Debt", "Debt")
+                        .WithMany("Payments")
+                        .HasForeignKey("DebtId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("IOU.Web.Models.ScheduledPayment", "ScheduledPayment")
+                        .WithMany("Payments")
+                        .HasForeignKey("ScheduledPaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Debt");
+
+                    b.Navigation("ScheduledPayment");
+                });
+
             modelBuilder.Entity("IOU.Web.Models.ScheduledPayment", b =>
                 {
                     b.HasOne("IOU.Web.Models.Debt", "Debt")
@@ -868,24 +899,6 @@ namespace IOU.Web.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Payment", b =>
-                {
-                    b.HasOne("IOU.Web.Models.Debt", "Debt")
-                        .WithMany("Payments")
-                        .HasForeignKey("DebtId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("IOU.Web.Models.ScheduledPayment", "ScheduledPayment")
-                        .WithMany("Payments")
-                        .HasForeignKey("ScheduledPaymentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Debt");
-
-                    b.Navigation("ScheduledPayment");
                 });
 
             modelBuilder.Entity("IOU.Web.Models.ApplicationUser", b =>

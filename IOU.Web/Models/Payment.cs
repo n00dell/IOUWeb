@@ -1,53 +1,50 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using IOU.Web.Models;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace IOU.Web.Models
+public class Payment
 {
-    public class Payment
-    {
-        [Key]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Id { get; set; } = Guid.NewGuid().ToString();
 
-        // Relationships
-        public string? ScheduledPaymentId { get; set; } // Nullable for custom payments
-        public string DebtId { get; set; }
+    [ForeignKey("ScheduledPaymentId")]
+    public string? ScheduledPaymentId { get; set; } // Nullable for custom payments
 
-        // Payment Details
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal Amount { get; set; }
-        public DateTime? PaymentDate { get; set; }
+    [Required]
+    [ForeignKey("Debt")]
+    public string DebtId { get; set; }
 
-        // MPESA Fields
-        public string? MpesaTransactionId { get; set; }
-        public string? MpesaReceiptNumber { get; set; }
-        public string PhoneNumber { get; set; }
-        // Payment Status
-        public PaymentTransactionStatus Status { get; set; } = PaymentTransactionStatus.Pending;
-        [Required]
-        public string CheckoutRequestID { get; set; }
-        [Required]
-        public DateTime InitiatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? CompletedAt { get; set; }
-        public string? ResultCode { get; set; }
-        public string? ResultDescription { get; set; }
-        [StringLength(500)]
-        public string? FailureReason { get; set; }
+    [Column(TypeName = "decimal(18,2)")]
+    [Range(0.01, double.MaxValue)]
+    public decimal Amount { get; set; }
 
+    [Required]
+    [StringLength(15)]
+    public string PhoneNumber { get; set; }
 
+    public PaymentTransactionStatus Status { get; set; } = PaymentTransactionStatus.Pending;
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-        // Navigation Properties
-        [ForeignKey("ScheduledPaymentId")]
-        public ScheduledPayment? ScheduledPayment { get; set; } // Optional (for installments)
-        [ForeignKey("DebtId")]
-        public Debt Debt { get; set; }
-    }
-    public enum PaymentTransactionStatus
-    {
-        
-        Pending = 1,
-        Paid = 2,
-        Failed = 3
-    }
+    [Required]
+    [StringLength(50)]
+    public string CheckoutRequestID { get; set; }
+
+    [StringLength(20)]
+    public string? MpesaReceiptNumber { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? PaymentDate { get; set; }
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    [StringLength(500)]
+    public string? ResultDescription { get; set; }
+
+    // Navigation properties
+    public ScheduledPayment? ScheduledPayment { get; set; }
+    public Debt Debt { get; set; }
+}
+
+public enum PaymentTransactionStatus
+{
+    Pending,
+    Paid,
+    Failed
 }

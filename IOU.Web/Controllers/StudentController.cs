@@ -20,11 +20,11 @@ namespace IOU.Web.Controllers
         private readonly IDebtService _debtService;
         private readonly IOUWebContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ISchedulePaymentService _paymentService;
+        private readonly IScheduledPaymentService _paymentService;
         private readonly ILogger<StudentController> _logger;
         private readonly INotificationService _notificationService;
-        private readonly MpesaPaymentService _mpesaService;
-        public StudentController(IDebtService debtService, IOUWebContext context, UserManager<ApplicationUser> userManager, ISchedulePaymentService paymentService, ILogger<StudentController> logger, INotificationService notificationService, MpesaPaymentService mpesaService)
+        private readonly IMpesaService _mpesaService;
+        public StudentController(IDebtService debtService, IOUWebContext context, UserManager<ApplicationUser> userManager, IScheduledPaymentService paymentService, ILogger<StudentController> logger, INotificationService notificationService, IMpesaService mpesaService)
         {
             _debtService = debtService;
             _context = context;
@@ -124,6 +124,15 @@ namespace IOU.Web.Controllers
                 _logger.LogError(ex, "Error fetching debt details for student.");
                 return RedirectToAction("Error", "Home");
             }
+        }
+
+        [Authorize(Roles = "Student")]
+        public IActionResult PaymentSuccess(string debtId, string receiptNo, decimal amount)
+        {
+            ViewBag.DebtId = debtId;
+            ViewBag.ReceiptNo = receiptNo;
+            ViewBag.Amount = amount.ToString("C");
+            return View();
         }
 
         [Authorize(Roles = "Student")]
@@ -472,86 +481,7 @@ namespace IOU.Web.Controllers
             return View(viewModel);
         }
 
-        [Authorize(Roles = "Student")]
-        [ValidateAntiForgeryToken]
-        [HttpPost("MakeCustomPayment")]
-        [Produces("application/json")]
-        [Route("Student/[action]")]
-        public async Task<IActionResult> MakeCustomPayment(
-    [FromBody] CustomPaymentRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "Validation failed",
-                        errors = ModelState.Values
-                            .SelectMany(v => v.Errors)
-                            .Select(e => e.ErrorMessage)
-                    });
-                }
-
-                // Initiate payment with MPesa
-                var mpesaResponse = await _mpesaService.InitiatePaymentAsync(
-                    request.PhoneNumber,
-                    request.Amount,
-                    request.DebtId
-                );
-
-                // Create payment record without MPesa details
-                var payment = new Payment
-                {
-                    DebtId = request.DebtId,
-                    Amount = request.Amount,
-                    PhoneNumber = request.PhoneNumber,
-                    CheckoutRequestID = mpesaResponse.CheckoutRequestID,
-                    Status = PaymentTransactionStatus.Pending
-                };
-
-                _context.Payments.Add(payment);
-                await _context.SaveChangesAsync();
-
-                return Ok(new
-                {
-                    success = true,
-                    checkoutRequestId = payment.CheckoutRequestID
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Payment initiation failed");
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-        }
-        // StudentController.cs
-        [HttpGet("payment-status/{checkoutRequestId}")]
-        public async Task<IActionResult> CheckPaymentStatus(string checkoutRequestId)
-        {
-            var payment = await _context.Payments
-                .FirstOrDefaultAsync(p => p.CheckoutRequestID == checkoutRequestId);
-
-            _logger.LogInformation($"Checking payment status for CheckoutRequestID: {checkoutRequestId}");
-            if (payment == null)
-            {
-                _logger.LogWarning($"No payment found for CheckoutRequestID: {checkoutRequestId}");
-                return NotFound();
-            }
-
-            return Ok(new
-            {
-                status = payment.Status.ToString(),
-                confirmed = payment.Status == PaymentTransactionStatus.Paid,
-                receipt = payment.MpesaReceiptNumber,
-                error = payment.FailureReason
-            });
-        }
+       
         private async Task<List<object>> GetTotalDebtOverview(string userId)
         {
             // Logic to get total debt overview

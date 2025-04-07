@@ -2,11 +2,14 @@
 {
     public class MpesaConfiguration
     {
-        public string ConsumerKey { get; set; }
-        public string ConsumerSecret { get; set; }
-        public string BaseUrl { get; set; }
-        public string LipaNaMpesaOnlinePassKey { get; set; }
-        public string BusinessShortCode { get; set; }
-        public string CallbackUrl { get; set; }
+        public required string ConsumerKey { get; set; }
+        public required string ConsumerSecret { get; set; }
+        public required string BaseUrl { get; set; }
+        public required string LipaNaMpesaOnlinePassKey { get; set; }
+        
+        public required int BusinessShortCode { get; set; }
+        public required string CallbackUrl { get; set; }
+        public bool UseNgrok { get; set; } = false;
+        public string? NgrokUrl { get; set; }
     }
 }

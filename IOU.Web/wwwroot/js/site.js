@@ -12,7 +12,6 @@
     }
 
     initializePaymentScheduleCalculator() {
-        // Initialize calculator if on debt creation page
         if ($('#PrincipalAmount').length && $('#DueDate').length) {
             this.setupPaymentCalculator();
         }
@@ -30,30 +29,18 @@
             const numberOfPayments = parseInt($('#NumberOfPayments').val()) || null;
 
             if (principal > 0 && interestRate > 0 && dueDate > today) {
-                // Calculate payment period based on whether number of payments is specified
-                let paymentPeriod;
-                let paymentFrequency = $('#PaymentFrequency').val();
+                let paymentPeriod = numberOfPayments ||
+                    ((dueDate.getFullYear() - firstPaymentDate.getFullYear()) * 12) +
+                    (dueDate.getMonth() - firstPaymentDate.getMonth());
 
-                if (numberOfPayments) {
-                    paymentPeriod = numberOfPayments;
-                } else {
-                    // Auto-calculate based on frequency
-                    const months = ((dueDate.getFullYear() - firstPaymentDate.getFullYear()) * 12 +
-                        (dueDate.getMonth() - firstPaymentDate.getMonth()));
-                    paymentPeriod = months;
-                }
-
-                let totalInterest = 0;
-                let monthlyPayment = 0;
+                let totalInterest, monthlyPayment;
 
                 if (interestType === 'Simple') {
-                    totalInterest = (principal * (interestRate / 100) * (paymentPeriod / 12));
+                    totalInterest = principal * (interestRate / 100) * (paymentPeriod / 12);
                     monthlyPayment = (principal + totalInterest) / paymentPeriod;
                 } else {
-                    // Compound interest calculation
                     const n = calculationPeriod === 'Monthly' ? 12 :
                         calculationPeriod === 'Quarterly' ? 4 : 1;
-
                     const r = interestRate / (100 * n);
                     const t = paymentPeriod / 12;
                     const amount = principal * Math.pow(1 + r, n * t);
@@ -61,18 +48,16 @@
                     monthlyPayment = amount / paymentPeriod;
                 }
 
-                $('#monthlyPayment').text('Ksh' + monthlyPayment.toFixed(2));
-                $('#totalInterest').text('Ksh' + totalInterest.toFixed(2));
-                $('#totalAmount').text('Ksh' + (principal + totalInterest).toFixed(2));
+                $('#monthlyPayment').text(`Ksh${monthlyPayment.toFixed(2)}`);
+                $('#totalInterest').text(`Ksh${totalInterest.toFixed(2)}`);
+                $('#totalAmount').text(`Ksh${(principal + totalInterest).toFixed(2)}`);
             }
         };
 
-        // Calculate on input change
         $('#PrincipalAmount, #InterestRate, #InterestType, #CalculationPeriod, ' +
             '#DueDate, #FirstPaymentDate, #NumberOfPayments, #PaymentFrequency')
             .on('input change', calculateLoanDetails);
 
-        // Initial calculation
         calculateLoanDetails();
     }
 
@@ -82,7 +67,8 @@
         const $submitBtn = $form.find('button[type="submit"]');
 
         try {
-            $submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+            $submitBtn.prop('disabled', true)
+                .html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
 
             const response = await $.ajax({
                 url: $form.attr('action'),
@@ -101,9 +87,7 @@
     }
 
     showAlert(type, message) {
-        const alertClass = type === 'error' ? 'alert-danger' :
-            type === 'success' ? 'alert-success' : 'alert-info';
-
+        const alertClass = `alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}`;
         const $alert = $(`
             <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
                 ${message}
@@ -112,10 +96,7 @@
         `);
 
         $('.alert-container').prepend($alert);
-
-        setTimeout(() => {
-            $alert.alert('close');
-        }, 5000);
+        setTimeout(() => $alert.alert('close'), 5000);
     }
 }
 
@@ -132,9 +113,8 @@ class NotificationManager {
 
     initializeEventListeners() {
         $(document).on('click', '.notification-item', (e) => {
-            const notificationId = $(e.currentTarget).data('id');
             if (!$(e.target).is('a')) {
-                this.markAsRead(notificationId);
+                this.markAsRead($(e.currentTarget).data('id'));
             }
         });
 
@@ -157,33 +137,23 @@ class NotificationManager {
         const $notificationList = $('#notificationList');
         $notificationList.empty();
 
-        if (!notifications || notifications.length === 0) {
-            $notificationList.append(`
-                <div class="notification-item text-center py-3">
-                    <div class="text-muted">No new notifications</div>
-                </div>
-            `);
+        if (!notifications?.length) {
+            $notificationList.append('<div class="notification-item text-center py-3"><div class="text-muted">No new notifications</div></div>');
             return;
         }
 
         notifications.forEach(notification => {
-            const notificationHtml = `
-                <div class="notification-item ${notification.isRead ? '' : 'unread'}" 
-                     data-id="${notification.id}">
-                    <div class="notification-time">
-                        ${new Date(notification.createdAt).toLocaleString()}
-                    </div>
+            const actionBtn = notification.actionUrl ?
+                `<div class="mt-2"><a href="${notification.actionUrl}" class="btn btn-sm btn-outline-primary">View Details</a></div>` : '';
+
+            $notificationList.append(`
+                <div class="notification-item ${notification.isRead ? '' : 'unread'}" data-id="${notification.id}">
+                    <div class="notification-time">${new Date(notification.createdAt).toLocaleString()}</div>
                     <div class="notification-title">${notification.title}</div>
                     <div class="notification-message">${notification.message}</div>
-                    ${notification.actionUrl ? `
-                    <div class="mt-2">
-                        <a href="${notification.actionUrl}" 
-                           class="btn btn-sm btn-outline-primary">
-                            View Details
-                        </a>
-                    </div>` : ''}
-                </div>`;
-            $notificationList.append(notificationHtml);
+                    ${actionBtn}
+                </div>
+            `);
         });
     }
 
@@ -192,8 +162,7 @@ class NotificationManager {
             const response = await $.get('/Notifications/GetUnreadCount');
             const count = response.count || 0;
             const $badge = $('.notification-count');
-            $badge.text(count);
-            count > 0 ? $badge.show() : $badge.hide();
+            $badge.text(count).toggle(count > 0);
         } catch (error) {
             console.error('Error updating unread count:', error);
         }
@@ -230,23 +199,21 @@ class NotificationManager {
     }
 }
 
-// ... (keep all previous code exactly the same until the PaymentManager class)
-
 class PaymentManager {
     constructor() {
         this.paymentForm = document.getElementById('mpesaPaymentForm');
+        if (!this.paymentForm) return;
+
         this.amountInput = document.getElementById('amount');
         this.phoneInput = document.getElementById('phone');
         this.debtIdInput = document.getElementById('debtId');
-        this.submitButton = this.paymentForm?.querySelector('button[type="submit"]');
+        this.submitButton = this.paymentForm.querySelector('button[type="submit"]');
         this.pollingInterval = null;
 
         this.initializeEventListeners();
     }
 
     initializeEventListeners() {
-        if (!this.paymentForm) return;
-
         this.paymentForm.addEventListener('submit', this.handlePaymentSubmit.bind(this));
         this.amountInput?.addEventListener('input', this.validateAmount.bind(this));
         this.phoneInput?.addEventListener('input', this.validatePhoneNumber.bind(this));
@@ -254,127 +221,99 @@ class PaymentManager {
 
     validateAmount() {
         const amount = parseFloat(this.amountInput.value);
-        const isValid = !isNaN(amount) && amount > 0;
+        const isValid = !isNaN(amount) && amount >= 10; // Minimum KES 10
         this.toggleInputValidity(this.amountInput, isValid);
         return isValid;
     }
 
     validatePhoneNumber() {
-        const phoneRegex = /^(0|254)?[7][0-9]{8}$/;
-        const isValid = phoneRegex.test(this.phoneInput.value.trim());
+        const phone = this.phoneInput.value.trim();
+        const isValid = /^(?:254|\+254|0)?(7[0-9]{8})$/.test(phone);
         this.toggleInputValidity(this.phoneInput, isValid);
         return isValid;
     }
 
-    toggleInputValidity(inputElement, isValid) {
-        inputElement.classList.toggle('is-invalid', !isValid);
-        inputElement.classList.toggle('is-valid', isValid);
+    toggleInputValidity(input, isValid) {
+        input.classList.toggle('is-invalid', !isValid);
+        input.classList.toggle('is-valid', isValid);
     }
 
     async handlePaymentSubmit(event) {
         event.preventDefault();
+
         if (!this.validateAmount() || !this.validatePhoneNumber()) {
-            this.showToast('error', 'Please correct the form errors');
+            this.showToast('error', 'Amount must be at least KES 10 and phone number valid');
             return;
         }
 
         this.disableSubmitButton();
 
         try {
-            const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            const payload = {
-                debtId: this.debtIdInput.value,
-                amount: parseFloat(this.amountInput.value),
-                phoneNumber: this.phoneInput.value.trim()
-            };
-
-            const response = await fetch('/Student/MakeCustomPayment', {
+            const response = await fetch('/api/payment/initiate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': csrfToken
+                    'RequestVerificationToken': document.querySelector('[name="__RequestVerificationToken"]').value
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    debtId: this.debtIdInput.value,
+                    amount: Math.max(10, parseFloat(this.amountInput.value)), // Ensure minimum KES 10
+                    phoneNumber: this.formatPhoneNumber(this.phoneInput.value.trim())
+                })
             });
 
-            console.log('Response status:', response.status);
-            const text = await response.text();
-            console.log('Raw response:', text);
-
-            if (!text) {
-                throw new Error('Server returned empty response');
-            }
-
-            let result;
-            try {
-                result = JSON.parse(text);
-            } catch (e) {
-                throw new Error(`Invalid JSON response: ${text.slice(0, 100)}`);
-            }
-
             if (!response.ok) {
-                throw new Error(result.message || `HTTP error ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(errorText || 'Payment failed');
             }
 
-            this.showToast('info', 'Check your phone to complete payment...');
-            this.startStatusPolling(result.checkoutRequestId);
+            const result = await response.json();
+            this.startStatusPolling(result.CheckoutRequestID);
 
         } catch (error) {
             console.error('Payment error:', error);
-            this.showToast('error', error.message);
+            this.showToast('error', error.message.includes('{') ?
+                JSON.parse(error.message).Message : error.message);
             this.enableSubmitButton();
         }
     }
+    formatPhoneNumber(phone) {
+        // Convert 07... to 2547...
+        return phone.replace(/^0/, '254');
+    }
 
     startStatusPolling(checkoutRequestId) {
-        const maxAttempts = 60;
         let attempts = 0;
+        const maxAttempts = 20;
+        const baseDelay = 3000;
 
-        this.pollingInterval = setInterval(async () => {
-            if (attempts >= maxAttempts) {
-                this.stopPolling();
-                this.showToast('error', 'Payment confirmation timed out');
-                return;
-            }
+        const poll = async () => {
+            attempts++;
 
             try {
-                const response = await fetch(`/Student/payment-status/${encodeURIComponent(checkoutRequestId)}`);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
+                const response = await fetch(`/api/payment/payment-status/${encodeURIComponent(checkoutRequestId)}`);
                 const status = await response.json();
 
+                if (!response.ok) throw new Error(status.error || 'Status check failed');
+
                 if (status.confirmed) {
-                    this.stopPolling();
-                    this.showToast('success', 'Payment confirmed! Updating page...');
-                    setTimeout(() => window.location.reload(), 2000);
-                } else if (status.status === 'Failed') {
-                    this.stopPolling();
-                    this.showToast('error', `Payment failed: ${status.resultDescription || 'Unknown error'}`);
-                    this.enableSubmitButton();
-                } else {
-                    // Show progress update every 5 checks
-                    if (attempts % 5 === 0) {
-                        this.showToast('info', `Waiting for payment confirmation (${attempts * 5}s)`);
-                    }
+                    this.showToast('success', `Payment of ${status.amount} confirmed! Receipt: ${status.receipt}`);
+                    window.location.href = `/Student/PaymentSuccess?debtId=${this.debtIdInput.value}&receiptNo=${status.receipt}&amount=${status.amount}`;
+                    return;
                 }
 
-                if (++attempts >= maxAttempts) {
-                    this.stopPolling();
-                    this.showToast('warning', 'Payment confirmation taking longer than expected');
-                    this.enableSubmitButton();
+                if (status.status === 'Failed' || attempts >= maxAttempts) {
+                    throw new Error(status.error || 'Payment confirmation timeout');
                 }
 
+                setTimeout(poll, baseDelay * Math.pow(1.5, attempts));
 
             } catch (error) {
-                console.error('Polling error:', error);
-                this.stopPolling();
-                this.showToast('error', 'Failed to check payment status');
-                this.enableSubmitButton();
+                this.showToast('error', error.message);
             }
-        }, 5000);
+        };
+
+        poll();
     }
 
     stopPolling() {
@@ -382,7 +321,6 @@ class PaymentManager {
             clearInterval(this.pollingInterval);
             this.pollingInterval = null;
         }
-        this.enableSubmitButton();
     }
 
     disableSubmitButton() {
@@ -404,11 +342,7 @@ class PaymentManager {
 
     showToast(type, message) {
         const toastContainer = this.getToastContainer();
-        const icon = {
-            success: '✓',
-            error: '✗',
-            info: 'ⓘ'
-        }[type];
+        const icon = { success: '✓', error: '✗', info: 'ⓘ' }[type];
 
         const toast = document.createElement('div');
         toast.className = `toast toast-${type} align-items-center border-0`;
@@ -420,7 +354,10 @@ class PaymentManager {
         `;
 
         toastContainer.appendChild(toast);
-        this.initializeToastBehavior(toast, type);
+        new bootstrap.Toast(toast, {
+            autohide: true,
+            delay: type === 'error' ? 5000 : 3000
+        }).show();
     }
 
     getToastContainer() {
@@ -433,17 +370,9 @@ class PaymentManager {
         }
         return container;
     }
-
-    initializeToastBehavior(toastElement, type) {
-        const bsToast = new bootstrap.Toast(toastElement, {
-            autohide: true,
-            delay: type === 'error' ? 5000 : 3000
-        });
-        bsToast.show();
-    }
 }
 
-// Main initialization - must be outside all class definitions
+// Initialize all managers when DOM is ready
 $(document).ready(() => {
     new DebtManager();
     new NotificationManager();

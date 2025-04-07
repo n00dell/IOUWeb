@@ -1,0 +1,16 @@
+﻿@{
+    ViewData["Title"] = "Payment Successful";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="alert alert-success text-center">
+        <h2>Payment Successful!</h2>
+        <p class="mb-1">Amount: @ViewBag.Amount</p>
+        <p class="mb-1">MPesa Receipt: @ViewBag.ReceiptNo</p>
+        <hr>
+        <a href="/Student/DebtDetails/@ViewBag.DebtId" class="btn btn-primary">
+            Back to Debt Details
+        </a>
+    </div>
+</div>

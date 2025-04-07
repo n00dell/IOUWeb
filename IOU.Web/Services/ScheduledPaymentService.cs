@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IOU.Web.Services
 {
-    public class ScheduledPaymentService : ISchedulePaymentService
+    public class ScheduledPaymentService : IScheduledPaymentService
     {
         private readonly IOUWebContext _context;
         private readonly IDebtService _debtService;
@@ -189,24 +189,43 @@ namespace IOU.Web.Services
                 .FirstOrDefaultAsync(p => p.Id == paymentId)
                 ?? throw new ArgumentException("Payment not found");
 
+            // Update debt calculations first
             await _debtService.UpdateDebtCalculations(payment.DebtId);
 
-            // For amortized payments, use pre-calculated portions
+            // Create payment record
+            var paymentRecord = new Payment
+            {
+                DebtId = payment.DebtId,
+                ScheduledPaymentId = payment.Id,
+                Amount = amount,
+                PaymentDate = DateTime.UtcNow,
+                Status = PaymentTransactionStatus.Paid
+            };
+
+            _context.Payments.Add(paymentRecord);
+
+            // Process the payment
             if (payment.InterestPortion > 0)
             {
+                // Amortized payment - use pre-calculated portions
                 payment.Status = ScheduledPaymentStatus.Paid;
                 payment.PaymentDate = DateTime.UtcNow;
+
+                // Update debt
                 payment.Debt.PrincipalAmount -= payment.PrincipalPortion;
                 payment.Debt.AccumulatedInterest -= payment.InterestPortion;
             }
             else
             {
-                // For simple payments, calculate portions dynamically
+                // Simple payment - calculate portions
                 var (principal, interest, lateFees) = CalculatePaymentPortions(payment.Debt, amount);
+
                 payment.Amount = amount;
                 payment.PrincipalPortion = principal;
                 payment.InterestPortion = interest;
                 payment.LateFeesPortion = lateFees;
+
+                // Update debt
                 payment.Debt.PrincipalAmount -= principal;
                 payment.Debt.AccumulatedInterest -= interest;
                 payment.Debt.AccumulatedLateFees -= lateFees;
@@ -214,6 +233,7 @@ namespace IOU.Web.Services
 
             await _context.SaveChangesAsync();
             await RecalculatePaymentScheduleAsync(payment.DebtId);
+
             return payment;
         }
         private decimal GetPeriodicInterestRate(Debt debt)
@@ -267,34 +287,68 @@ namespace IOU.Web.Services
 
         public async Task RecalculatePaymentScheduleAsync(string debtId)
         {
+            var debt = await _context.Debt.FindAsync(debtId);
+            if (debt == null) return;
+
             var remainingPayments = await _context.ScheduledPayment
                 .Where(p => p.DebtId == debtId && p.Status == ScheduledPaymentStatus.Scheduled)
                 .OrderBy(p => p.DueDate)
                 .ToListAsync();
 
-            var debt = await _context.Debt.FindAsync(debtId);
-            if (debt == null || !remainingPayments.Any()) return;
+            if (!remainingPayments.Any()) return;
 
             var totalRemaining = debt.CurrentBalance;
-            var basePaymentAmount = Math.Round(totalRemaining / remainingPayments.Count, 2);
 
-            for (int i = 0; i < remainingPayments.Count; i++)
+            if (debt.InterestType == InterestType.Compound)
             {
-                if (i == remainingPayments.Count - 1)
+                // For compound interest, recalculate the entire schedule
+                await RegenerateCompoundSchedule(debt, remainingPayments);
+            }
+            else
+            {
+                // For simple interest, just redistribute remaining amount
+                var basePayment = Math.Round(totalRemaining / remainingPayments.Count, 2);
+
+                for (int i = 0; i < remainingPayments.Count; i++)
                 {
-                    // Adjust last payment for rounding
-                    remainingPayments[i].Amount = totalRemaining;
-                }
-                else
-                {
-                    remainingPayments[i].Amount = basePaymentAmount;
-                    totalRemaining -= basePaymentAmount;
+                    if (i == remainingPayments.Count - 1)
+                    {
+                        // Last payment gets any remainder due to rounding
+                        remainingPayments[i].Amount = totalRemaining;
+                    }
+                    else
+                    {
+                        remainingPayments[i].Amount = basePayment;
+                        totalRemaining -= basePayment;
+                    }
                 }
             }
 
             await _context.SaveChangesAsync();
         }
+        private async Task RegenerateCompoundSchedule(Debt debt, List<ScheduledPayment> remainingPayments)
+        {
+            // Remove existing scheduled payments
+            _context.ScheduledPayment.RemoveRange(remainingPayments);
 
+            // Get the first payment date (either today or the next due date)
+            var firstPaymentDate = remainingPayments.Min(p => p.DueDate) > DateTime.UtcNow
+                ? remainingPayments.Min(p => p.DueDate)
+                : DateTime.UtcNow;
+
+            // Get number of remaining payments
+            var numberOfPayments = remainingPayments.Count;
+
+            // Regenerate the schedule
+            var newPayments = await GenerateCompoundSchedule(
+                debt,
+                firstPaymentDate,
+                numberOfPayments,
+                PaymentFrequency.Monthly); // Or get frequency from debt
+
+            // Add the new payments
+            await _context.ScheduledPayment.AddRangeAsync(newPayments);
+        }
         public async Task<ScheduledPayment> GetScheduledPaymentAsync(string id)
         {
             return await _context.ScheduledPayment
@@ -309,18 +363,22 @@ namespace IOU.Web.Services
                 .ToListAsync();
         }
 
-        private (decimal principal, decimal interest, decimal lateFees) CalculatePaymentPortions(Debt debt, decimal paymentAmount)
+        public (decimal principal, decimal interest, decimal lateFees) CalculatePaymentPortions(Debt debt, decimal paymentAmount)
         {
             decimal remainingPayment = paymentAmount;
-            decimal lateFees = Math.Min(remainingPayment, debt.AccumulatedLateFees);
-            remainingPayment -= lateFees;
 
-            decimal interest = Math.Min(remainingPayment, debt.AccumulatedInterest);
-            remainingPayment -= interest;
+            // 1. Pay late fees first
+            decimal lateFeesPaid = Math.Min(remainingPayment, debt.AccumulatedLateFees);
+            remainingPayment -= lateFeesPaid;
 
-            decimal principal = Math.Min(remainingPayment, debt.PrincipalAmount);
+            // 2. Pay interest next
+            decimal interestPaid = Math.Min(remainingPayment, debt.AccumulatedInterest);
+            remainingPayment -= interestPaid;
 
-            return (principal, interest, lateFees);
+            // 3. Remainder goes to principal
+            decimal principalPaid = Math.Min(remainingPayment, debt.PrincipalAmount);
+
+            return (principalPaid, interestPaid, lateFeesPaid);
         }
 
         private async Task<List<ScheduledPayment>> GenerateInstallments(
@@ -355,7 +413,51 @@ namespace IOU.Web.Services
             await _context.SaveChangesAsync();
             return payments;
         }
+        public async Task ProcessPaymentAgainstSchedule(Payment payment)
+        {
+            // Start transaction
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
+            try
+            {
+                var debt = await _context.Debt.FindAsync(payment.DebtId);
+                if (debt == null) throw new Exception("Debt not found");
+
+                // Update debt balance
+                debt.CurrentBalance -= payment.Amount;
+
+                // Find earliest unpaid scheduled payment
+                var scheduledPayment = await _context.ScheduledPayment
+                    .Where(p => p.DebtId == payment.DebtId && p.Status != ScheduledPaymentStatus.Paid)
+                    .OrderBy(p => p.DueDate)
+                    .FirstOrDefaultAsync();
+
+                if (scheduledPayment != null)
+                {
+                    // Update scheduled payment
+                    scheduledPayment.Amount -= payment.Amount;
+                    if (scheduledPayment.Amount <= 0)
+                    {
+                        scheduledPayment.Status = ScheduledPaymentStatus.Paid;
+                        scheduledPayment.PaymentDate = DateTime.UtcNow;
+                    }
+                }
+
+                // Update payment reference
+                if (scheduledPayment != null)
+                {
+                    payment.ScheduledPaymentId = scheduledPayment.Id;
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
         private decimal CalculatePMT(decimal ratePerPeriod, int numberOfPeriods, decimal principal)
         {
             if (ratePerPeriod == 0)

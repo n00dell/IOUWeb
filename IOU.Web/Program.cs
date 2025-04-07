@@ -4,8 +4,10 @@ using IOU.Web.Services.Interfaces;
 using IOU.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation;
-using IOU.Web.Config; // Add this for runtime compilation
+using IOU.Web.Config;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,13 +58,21 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<IDebtCalculationService, DebtCalculationService>();
 builder.Services.AddScoped<IDebtService, DebtService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<ISchedulePaymentService, ScheduledPaymentService>();
+builder.Services.AddScoped<IScheduledPaymentService, ScheduledPaymentService>();
 builder.Services.AddScoped<IRazorViewRenderer, RazorViewRenderer>();
 builder.Services.AddScoped<IEmailService, MailJetEmailService>(); // Register IEmailService
 builder.Services.Configure<MpesaConfiguration>(builder.Configuration.GetSection("MpesaConfiguration"));
-builder.Services.AddScoped<MpesaAuthService>();
-builder.Services.AddScoped<MpesaPaymentService>();
-builder.Services.AddHostedService<PaymentCleanupService>();
+
+builder.Services.AddScoped<IMpesaService, MpesaService>();
+builder.Services.AddSingleton<NgrokService>();
+builder.Services.AddHostedService<NgrokMonitorService>(); // For auto-refresh
+builder.Services.AddHttpClient("Mpesa", c =>
+{
+    c.BaseAddress = new Uri(builder.Configuration["MpesaConfiguration:BaseUrl"]!);
+    c.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+});
+
 
 // Add Razor runtime compilation
 builder.Services.AddMvc().AddRazorRuntimeCompilation();

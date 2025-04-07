@@ -19,7 +19,7 @@ namespace IOU.Web.Controllers
         private readonly INotificationService _notificationService;
         private readonly ILogger<LenderController> _logger;
         private readonly IDebtService _debtService;
-        private readonly ISchedulePaymentService _paymentService;
+        private readonly IScheduledPaymentService _paymentService;
         private readonly IWebHostEnvironment _env;
 
         public LenderController(
@@ -29,7 +29,7 @@ namespace IOU.Web.Controllers
             INotificationService notificationService,
             IDebtService debtService,
             ILogger<LenderController> logger,
-            ISchedulePaymentService paymentService,
+            IScheduledPaymentService paymentService,
             IWebHostEnvironment env)
         {
             _paymentService = paymentService;

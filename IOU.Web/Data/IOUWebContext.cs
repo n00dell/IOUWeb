@@ -33,18 +33,33 @@ namespace IOU.Web.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // In your DbContext's OnModelCreating
-            modelBuilder.Entity<Payment>()
-                .Property(p => p.Status)
-                .HasDefaultValue(PaymentTransactionStatus.Pending);
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                // Proper indexing
+                entity.HasIndex(p => p.CheckoutRequestID).IsUnique();
+                entity.HasIndex(p => new { p.Status, p.UpdatedAt });
 
-            modelBuilder.Entity<Payment>()
-    .HasIndex(p => new { p.Status, p.CompletedAt });
+                entity.Property(p => p.UpdatedAt)
+                    .IsConcurrencyToken();
 
-            // In your DbContext's OnModelCreating
-            modelBuilder.Entity<Payment>()
-                .HasIndex(p => p.CheckoutRequestID)
-                .IsUnique();
+                // Precision for amount
+                entity.Property(p => p.Amount).HasPrecision(18, 2);
+
+                // Relationships
+                entity.HasOne(p => p.Debt)
+                    .WithMany(d => d.Payments)
+                    .HasForeignKey(p => p.DebtId)
+                    .OnDelete(DeleteBehavior.Restrict); // Changed from Cascade
+
+                entity.HasOne(p => p.ScheduledPayment)
+                    .WithMany(s => s.Payments)
+                    .HasForeignKey(p => p.ScheduledPaymentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Default values
+                entity.Property(p => p.Status)
+                    .HasDefaultValue(PaymentTransactionStatus.Pending);
+            });
 
             modelBuilder.Model.GetEntityTypes()
        .Where(e => e.ClrType == typeof(Debt))
@@ -69,11 +84,19 @@ namespace IOU.Web.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ScheduledPayment -> Payments (installment payments)
-            modelBuilder.Entity<ScheduledPayment>()
-                .HasMany(p => p.Payments)
-                .WithOne(p => p.ScheduledPayment)
-                .HasForeignKey(p => p.ScheduledPaymentId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+            modelBuilder.Entity<ScheduledPayment>(entity =>
+            {
+                entity.HasOne(s => s.Debt)
+                    .WithMany(d => d.ScheduledPayments)
+                    .HasForeignKey(s => s.DebtId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Ensure proper precision
+                entity.Property(s => s.Amount).HasPrecision(18, 2);
+                entity.Property(s => s.PrincipalPortion).HasPrecision(18, 2);
+                entity.Property(s => s.InterestPortion).HasPrecision(18, 2);
+                entity.Property(s => s.LateFeesPortion).HasPrecision(18, 2);
+            });
 
             modelBuilder.Entity<Debt>(entity =>
             {
@@ -167,13 +190,7 @@ namespace IOU.Web.Data
             });
 
             // Configure decimal precision for ScheduledPayment (if exists)
-            modelBuilder.Entity<ScheduledPayment>(entity =>
-            {
-                entity.Property(p => p.Amount).HasPrecision(18, 2);
-                entity.Property(p => p.InterestPortion).HasPrecision(18, 2);
-                entity.Property(p => p.LateFeesPortion).HasPrecision(18, 2);
-                entity.Property(p => p.PrincipalPortion).HasPrecision(18, 2);
-            });
+            
 
         }
 
