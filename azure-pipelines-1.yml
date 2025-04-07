@@ -1,0 +1,24 @@
+trigger: none  # CD is triggered by CI artifacts
+
+stages:
+- stage: Deploy
+  jobs:
+  - deployment: DeployToAzure
+    environment: Production  # Matches the Environment you created
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'drop'
+              downloadPath: '$(System.ArtifactsDirectory)'
+
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: 'Your-Azure-Subscription-Name'
+              appType: 'webApp'
+              appName: 'Your-App-Service-Name'
+              package: '$(System.ArtifactsDirectory)/**/*.zip'
