@@ -55,13 +55,18 @@ namespace IOU.Web.Models
         LenderApproved, 
         LenderRejected, 
         UserCreated,    
-        PaymentMade     
+        PaymentMade,
+        CreditCheckRequest,
+        CreditCheckApproved,
+        CreditCheckDenied
     }
     public enum RelatedEntityType
     {
         Debt,
         Dispute,
         Payment,
-        Other
+        Other,
+        ReportRequest,
+        CreditCheck
     }
 }

@@ -29,6 +29,10 @@ namespace IOU.Web.Data
 
         public DbSet<Payment> Payments { get; set; }
 
+        public DbSet<CreditReport> CreditReports { get; set; }
+
+        public DbSet<CreditReportRequest> CreditReportRequests { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -83,6 +87,35 @@ namespace IOU.Web.Data
                 .HasForeignKey(p => p.DebtId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<CreditReportRequest>()
+        .HasIndex(r => new { r.StudentEmail, r.LenderUserId });
+
+            modelBuilder.Entity<CreditReport>()
+                .HasIndex(r => r.StudentUserId);
+            modelBuilder.Entity<CreditReportRequest>()
+        .HasOne(r => r.Student)
+        .WithMany()
+        .HasForeignKey(r => r.StudentUserId)
+        .OnDelete(DeleteBehavior.Restrict); // Changed from Cascade to Restrict
+            modelBuilder.Entity<CreditReportRequest>()
+    .HasOne(c => c.CreditReport)
+    .WithMany()
+    .HasForeignKey(c => c.CreditReportId)
+    .IsRequired(false);
+            // Configure decimal precision for CreditReport
+            modelBuilder.Entity<CreditReport>(e =>
+            {
+                e.Property(p => p.CreditScore).HasPrecision(18, 2);
+                e.Property(p => p.PaymentCompletionRate).HasPrecision(5, 2);
+                e.Property(p => p.AveragePaymentDelayDays).HasPrecision(5, 2);
+                e.Property(p => p.TotalDebtObligations).HasPrecision(18, 2);
+            });
+
+            // Configure decimal precision for ScheduledPayment
+            modelBuilder.Entity<ScheduledPayment>(e =>
+            {
+                e.Property(p => p.PaidAmount).HasPrecision(18, 2);
+            });
             // ScheduledPayment -> Payments (installment payments)
             modelBuilder.Entity<ScheduledPayment>(entity =>
             {

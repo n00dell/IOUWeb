@@ -52,24 +52,26 @@
                 <span>Borrowers</span>
             </a>
         </li>
-        <li class="lender-menu__item">
-            <a asp-controller="Lender" asp-action="Payments"
-               class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Payments" ? "active" : "")">
-                <i class="fas fa-money-bill-wave lender-menu__icon"></i>
-                <span>Payment History</span>
-            </a>
-        </li>
-
+       
         <!-- Reports Section -->
         <li class="lender-menu__section">
             <span class="lender-menu__section-text">Reports & Analytics</span>
         </li>
+        
         <li class="lender-menu__item">
-            <a asp-controller="Lender" asp-action="Reports"
-               class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Reports" ? "active" : "")">
-                <i class="fas fa-chart-line lender-menu__icon"></i>
-                <span>Reports</span>
+            <a asp-controller="Lender" asp-action="CreditCheckRequests"
+               class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "CreditCheckRequests" ? "active" : "")">
+                <i class="fas fa-file-invoice-dollar lender-menu__icon"></i>
+                <span>Credit Checks</span>
             </a>
         </li>
+
+        <li class="nav-item lender-menu__item lender-menu__bottom-item">
+            <a asp-controller="Account" asp-action="Logout" class="nav-link text-white">
+                <i class="fas fa-sign-out-alt me-2"></i>
+                Log Out
+            </a>
+        </li>
+
     </ul>
 </div>

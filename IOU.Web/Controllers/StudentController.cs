@@ -25,7 +25,8 @@ namespace IOU.Web.Controllers
         private readonly ILogger<StudentController> _logger;
         private readonly INotificationService _notificationService;
         private readonly IMpesaService _mpesaService;
-        public StudentController(IDebtService debtService, IOUWebContext context, UserManager<ApplicationUser> userManager, IScheduledPaymentService paymentService, ILogger<StudentController> logger, INotificationService notificationService, IMpesaService mpesaService)
+        private readonly ICreditReportService _creditReportService;
+        public StudentController(IDebtService debtService, IOUWebContext context, UserManager<ApplicationUser> userManager, IScheduledPaymentService paymentService, ILogger<StudentController> logger, INotificationService notificationService, IMpesaService mpesaService, ICreditReportService creditReportService)
         {
             _debtService = debtService;
             _context = context;
@@ -34,6 +35,7 @@ namespace IOU.Web.Controllers
             _logger = logger;
             _notificationService = notificationService;
             _mpesaService = mpesaService;
+            _creditReportService = creditReportService;
         }
 
 
@@ -532,6 +534,7 @@ namespace IOU.Web.Controllers
                 return StatusCode(500, "Error generating report");
             }
         }
+
         private async Task<TotalDebtOverviewViewModel> GetTotalDebtOverview(string userId)
         {
             _logger.LogInformation("Getting debt overview for user: {UserId}", userId);
@@ -636,6 +639,99 @@ namespace IOU.Web.Controllers
                                                      g => $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(g.Key.Month)} {g.Key.Year}",
                                                      g => g.Sum(p => p.Amount))
             };
+        }
+        [Authorize(Roles = "Student")]
+        [HttpGet("CreditCheckRequests")]
+        public async Task<IActionResult> CreditCheckRequests()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            var requests = await _context.CreditReportRequests
+                .Include(r => r.Lender)
+                    .ThenInclude(l => l.User)
+                .Where(r => r.StudentEmail == currentUser.Email)
+                .OrderByDescending(r => r.RequestDate)
+                .ToListAsync();
+
+            return View(requests);
+        }
+
+        [Authorize(Roles = "Student")]
+        [HttpPost("ApproveCreditCheck/{requestId}")]
+        public async Task<IActionResult> ApproveCreditCheck(string requestId)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            var request = await _context.CreditReportRequests
+                .Include(r => r.Lender)
+                    .ThenInclude(l => l.User)
+                .FirstOrDefaultAsync(r => r.Id == requestId &&
+                                        r.StudentEmail == currentUser.Email &&
+                                        !r.ResponseDate.HasValue);
+
+            if (request == null)
+                return NotFound();
+
+            // Generate the credit report
+            var report = await _creditReportService.GenerateCreditReport(currentUser.Id);
+            if (report == null) // Add null check
+            {
+                TempData["ErrorMessage"] = "Failed to generate credit report";
+                return RedirectToAction(nameof(CreditCheckRequests));
+            }
+            request.IsApproved = true;
+            request.ResponseDate = DateTime.UtcNow;
+            request.CreditReport = report;
+
+            await _context.SaveChangesAsync();
+
+            // Notify lender
+            await _notificationService.CreateNotification(
+                userId: request.Lender.UserId,
+                title: "Credit Report Approved",
+                message: $"{currentUser.FullName} has approved your credit check request",
+                type: NotificationType.CreditCheckApproved,
+                relatedEntityId: request.Id,
+                relatedEntityType: RelatedEntityType.CreditCheck,
+                actionUrl: $"/Lender/ViewCreditReport/{request.Id}"
+            );
+
+            TempData["SuccessMessage"] = "Credit check request approved";
+            return RedirectToAction(nameof(CreditCheckRequests));
+        }
+
+        [Authorize(Roles = "Student")]
+        [HttpPost("DenyCreditCheck/{requestId}")]
+        public async Task<IActionResult> DenyCreditCheck(string requestId)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            var request = await _context.CreditReportRequests
+                .FirstOrDefaultAsync(r => r.Id == requestId &&
+                                        r.StudentEmail == currentUser.Email &&
+                                        !r.ResponseDate.HasValue);
+
+            if (request == null)
+                return NotFound();
+
+            request.IsApproved = false;
+            request.ResponseDate = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Notify lender
+            await _notificationService.CreateNotification(
+                userId: request.Lender.UserId,
+                title: "Credit Report Denied",
+                message: $"{currentUser.FullName} has denied your credit check request",
+                type: NotificationType.CreditCheckDenied,
+                relatedEntityType: RelatedEntityType.CreditCheck,
+                relatedEntityId: request.Id,
+                actionUrl: $"/Lender/CreditCheckRequests"
+            );
+
+            TempData["WarningMessage"] = "Credit check request denied";
+            return RedirectToAction(nameof(CreditCheckRequests));
         }
     }
 

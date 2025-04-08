@@ -17,7 +17,9 @@
         public decimal LateFeesPortion { get; set; }
 
         public bool IsCustomPayment { get; set; } = false;
-
+        public bool IsLate { get; set; }
+        public int DaysLate { get; set; }
+        public decimal PaidAmount { get; set; }
         // Status
         public ScheduledPaymentStatus Status { get; set; } = ScheduledPaymentStatus.Scheduled;
 

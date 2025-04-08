@@ -62,8 +62,8 @@ builder.Services.AddScoped<IScheduledPaymentService, ScheduledPaymentService>();
 builder.Services.AddScoped<IRazorViewRenderer, RazorViewRenderer>();
 builder.Services.AddScoped<IEmailService, MailJetEmailService>(); // Register IEmailService
 builder.Services.Configure<MpesaConfiguration>(builder.Configuration.GetSection("MpesaConfiguration"));
-
 builder.Services.AddScoped<IMpesaService, MpesaService>();
+builder.Services.AddScoped<ICreditReportService, CreditReportService>();
 builder.Services.AddSingleton<NgrokService>();
 builder.Services.AddHostedService<NgrokMonitorService>(); // For auto-refresh
 builder.Services.AddHttpClient("Mpesa", c =>

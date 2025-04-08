@@ -53,7 +53,14 @@
                 Reports
             </a>
         </li>
-
+        <li class="nav-item">
+            <a asp-controller="Student" asp-action="CreditCheckRequests"
+               class="nav-link text-white @(ViewContext.RouteData.Values["Action"]?.ToString() == "CreditCheckRequests" ? "active bg-primary" : "")">
+                <i class="fas fa-file-contract me-2"></i>
+                Credit Checks
+                @await Component.InvokeAsync("CreditCheckRequests")
+            </a>
+        </li>
         <li class="nav-item border-top border-secondary mt-auto">
             <small class="text-uppercase text-muted fw-bold d-block px-3 pt-3">Account</small>
         </li>

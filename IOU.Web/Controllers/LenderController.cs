@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using IOU.Web.Services.Interfaces;
 using IOU.Web.Services;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace IOU.Web.Controllers
 {
@@ -21,6 +22,7 @@ namespace IOU.Web.Controllers
         private readonly IDebtService _debtService;
         private readonly IScheduledPaymentService _paymentService;
         private readonly IWebHostEnvironment _env;
+        private readonly ICreditReportService _creditReportService;
 
         public LenderController(
             IOUWebContext context,
@@ -30,7 +32,8 @@ namespace IOU.Web.Controllers
             IDebtService debtService,
             ILogger<LenderController> logger,
             IScheduledPaymentService paymentService,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            ICreditReportService creditReportService)
         {
             _paymentService = paymentService;
             _context = context;
@@ -40,6 +43,7 @@ namespace IOU.Web.Controllers
             _logger = logger;
             _debtService = debtService;
             _env = env;
+            _creditReportService = creditReportService;
         }
 
         [HttpGet]
@@ -195,18 +199,6 @@ namespace IOU.Web.Controllers
             return error == null;
         }
 
-        private DateTime GetLastPaymentDate(DateTime firstDate, PaymentFrequency frequency, int count)
-        {
-            return frequency switch
-            {
-                PaymentFrequency.Weekly => firstDate.AddDays(7 * (count - 1)),
-                PaymentFrequency.Biweekly => firstDate.AddDays(14 * (count - 1)),
-                PaymentFrequency.Monthly => firstDate.AddMonths(count - 1),
-                PaymentFrequency.Quarterly => firstDate.AddMonths(3 * (count - 1)),
-                _ => throw new ArgumentException("Invalid frequency")
-            };
-        }
-
         [HttpGet]
         [Authorize(Roles = "Lender")]
         public async Task<IActionResult> DebtDetails(string id)
@@ -237,99 +229,6 @@ namespace IOU.Web.Controllers
             return View(viewModel);
         }
 
-        //private bool ValidateDebtCreation(CreateDebtViewModel model, out string errorMessage)
-        //{
-        //    errorMessage = null;
-
-        //    if (model.DueDate <= DateTime.Today)
-        //    {
-        //        errorMessage = "Due date must be in the future";
-        //        return false;
-        //    }
-
-        //    if (model.InterestRate < 0 || model.InterestRate > 100)
-        //    {
-        //        errorMessage = "Interest rate must be between 0 and 100";
-        //        return false;
-        //    }
-
-        //    if (model.GracePeriodDays < 0 || model.GracePeriodDays > 30)
-        //    {
-        //        errorMessage = "Grace period must be between 0 and 30 days";
-        //        return false;
-        //    }
-
-        //    if (model.FirstPaymentDate <= DateTime.Today)
-        //    {
-        //        errorMessage = "First payment date must be in the future";
-        //        return false;
-        //    }
-
-        //    if (model.NumberOfPayments <= 0 || model.NumberOfPayments > 120)
-        //    {
-        //        errorMessage = "Number of payments must be between 1 and 120";
-        //        return false;
-        //    }
-
-        //    DateTime lastPaymentDate;
-        //    if (model.NumberOfPayments.HasValue)
-        //    {
-        //        lastPaymentDate = CalculateLastPaymentDate(
-        //            model.FirstPaymentDate,
-        //            model.PaymentFrequency,
-        //            model.NumberOfPayments.Value);
-
-        //        if (lastPaymentDate > model.DueDate)
-        //        {
-        //            errorMessage = "The payment schedule exceeds the debt's due date. " +
-        //                         "Adjust the number of payments, frequency, or due date.";
-        //            return false;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        // Auto-calculate installments based on due date
-        //        int calculatedPayments = CalculateNumberOfPayments(
-        //            model.FirstPaymentDate,
-        //            model.DueDate,
-        //            model.PaymentFrequency);
-
-        //        if (calculatedPayments == 0)
-        //        {
-        //            errorMessage = "The first payment date must be before the due date";
-        //            return false;
-        //        }
-        //    }
-
-        //    return true;
-        //}
-        private int CalculateNumberOfPayments(DateTime firstPaymentDate, DateTime dueDate, PaymentFrequency frequency)
-        {
-            if (firstPaymentDate >= dueDate)
-                return 0;
-
-            return frequency switch
-            {
-                PaymentFrequency.Weekly => (int)Math.Ceiling((dueDate - firstPaymentDate).TotalDays / 7),
-                PaymentFrequency.Biweekly => (int)Math.Ceiling((dueDate - firstPaymentDate).TotalDays / 14),
-                PaymentFrequency.Monthly => ((dueDate.Year - firstPaymentDate.Year) * 12) +
-                                          dueDate.Month - firstPaymentDate.Month,
-                PaymentFrequency.Quarterly => ((dueDate.Year - firstPaymentDate.Year) * 4) +
-                                             ((dueDate.Month - firstPaymentDate.Month) / 3),
-                _ => 0
-            };
-        }
-        private DateTime CalculateLastPaymentDate(DateTime firstPaymentDate, PaymentFrequency frequency, int numberOfPayments)
-        {
-            return frequency switch
-            {
-                PaymentFrequency.Weekly => firstPaymentDate.AddDays(7 * (numberOfPayments - 1)),
-                PaymentFrequency.Biweekly => firstPaymentDate.AddDays(14 * (numberOfPayments - 1)),
-                PaymentFrequency.Monthly => firstPaymentDate.AddMonths(numberOfPayments - 1),
-                PaymentFrequency.Quarterly => firstPaymentDate.AddMonths(3 * (numberOfPayments - 1)),
-                _ => throw new ArgumentException("Invalid payment frequency")
-            };
-        }
 
         private async Task<(ApplicationUser User, Lender Lender)> GetCurrentLender()
         {
@@ -541,5 +440,196 @@ namespace IOU.Web.Controllers
 
             return View("EvidenceSubmissionSuccess", disputeId);
         }
+
+        [Authorize(Roles = "Lender")]
+        [HttpGet("RequestCreditCheck")]
+        public IActionResult RequestCreditCheck()
+        {
+            var viewModel = new CreditCheckRequestViewModel
+            {
+                PurposeOptions = GetPurposeOptions()
+            };
+            return View(viewModel);
+        }
+
+        [Authorize(Roles = "Lender")]
+        [HttpPost("RequestCreditCheck")]
+        public async Task<IActionResult> RequestCreditCheck(CreditCheckRequestViewModel model)
+        {
+            model.PurposeOptions = GetPurposeOptions();
+            if (!ModelState.IsValid)
+            {
+                model.PurposeOptions = GetPurposeOptions();
+                return View(model);
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if(currentUser == null) return Challenge();
+            var lender = await _context.Lender.FirstOrDefaultAsync(l => l.UserId == currentUser.Id);
+            if (lender == null) return Forbid();
+
+            // Check if student exists
+            var studentUser = await _userManager.FindByEmailAsync(model.StudentEmail);
+            if (studentUser == null)
+            {
+                ModelState.AddModelError("StudentEmail", "Student not found in system");
+                model.PurposeOptions = GetPurposeOptions();
+                return View(model);
+            }
+
+            // Check for existing pending requests
+            var existingRequest = await _context.CreditReportRequests
+                .AnyAsync(r => r.LenderUserId == lender.UserId &&
+                              r.StudentEmail == model.StudentEmail &&
+                              !r.ResponseDate.HasValue);
+            if (existingRequest)
+            {
+                ModelState.AddModelError("", "You already have a pending request for this student");
+                model.PurposeOptions = GetPurposeOptions();
+                return View(model);
+            }
+
+            // Create request
+            var request = new CreditReportRequest
+            {
+                LenderUserId = lender.UserId,
+                StudentEmail = model.StudentEmail,
+                Purpose = model.SelectedPurpose,
+                RequestDate = DateTime.UtcNow,
+                StudentUserId = studentUser.Id,
+                CreditReportId = null
+            };
+
+            _context.CreditReportRequests.Add(request);
+            await _context.SaveChangesAsync();
+
+            // Notify student
+            await _notificationService.CreateNotification(
+                userId: studentUser.Id,
+                title: "Credit Check Request",
+                message: $"{currentUser.FullName} has requested a credit report for: {model.SelectedPurpose}",
+                type: NotificationType.CreditCheckRequest,
+                relatedEntityId: request.Id,
+                relatedEntityType: RelatedEntityType.CreditCheck,
+                actionUrl: $"/Student/CreditCheckRequests"
+            );
+
+            TempData["SuccessMessage"] = "Credit check request submitted. Awaiting student approval.";
+            return RedirectToAction(nameof(CreditCheckRequests));
+        }
+
+        [Authorize(Roles = "Lender")]
+        [HttpGet("CreditCheckRequests")]
+        public async Task<IActionResult> CreditCheckRequests()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var requests = await _context.CreditReportRequests
+                .Include(r => r.Lender)
+                .Where(r => r.LenderUserId == currentUser.Id)
+                .OrderByDescending(r => r.RequestDate)
+                .ToListAsync();
+
+            return View(requests);
+        }
+
+        [Authorize(Roles = "Lender")]
+        [HttpGet("ViewCreditReport/{id}")]
+        public async Task<IActionResult> ViewCreditReport(string id)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            var request = await _context.CreditReportRequests
+                .Include(r => r.CreditReport)
+                .Include(r => r.Student)
+                    .ThenInclude(s => s.User)
+                .Include(r => r.Student)
+                    .ThenInclude(s => s.Debts)
+                    .ThenInclude(d => d.ScheduledPayments)
+                .FirstOrDefaultAsync(r => r.Id == id &&
+                                         r.LenderUserId == currentUser.Id &&
+                                         r.IsApproved == true);
+
+            if (request?.CreditReport == null)
+                return NotFound();
+
+            if (request.ResponseDate.HasValue &&
+                request.ResponseDate.Value.AddDays(30) < DateTime.UtcNow)
+            {
+                TempData["ErrorMessage"] = "This report has expired";
+                return RedirectToAction(nameof(CreditCheckRequests));
+            }
+
+            // Calculate payment history
+            var allPayments = request.Student.Debts
+                .SelectMany(d => d.ScheduledPayments)
+                .Where(p => p.Status == ScheduledPaymentStatus.Paid)
+                .ToList();
+
+            var paymentHistory = new CreditReportViewModel.PaymentHistorySummary
+            {
+                TotalPayments = allPayments.Count,
+                OnTimePayments = allPayments.Count(p => p.DaysLate <= 0),
+                LatePayments = allPayments.Count(p => p.DaysLate > 0),
+                AverageDaysLate = allPayments.Any() ?
+                    (decimal)allPayments.Average(p => p.DaysLate) : 0
+            };
+
+            // Create view model
+            var viewModel = new CreditReportViewModel
+            {
+                StudentName = request.Student.User.FullName,
+                CreditScore = request.CreditReport.CreditScore,
+                RiskCategory = request.CreditReport.RiskCategory,
+                ActiveDebts = request.CreditReport.ActiveDebtsCount,
+                TotalObligations = request.CreditReport.TotalDebtObligations,
+                PaymentCompletionRate = request.CreditReport.PaymentCompletionRate,
+                AverageDelayDays = request.CreditReport.AveragePaymentDelayDays,
+                GeneratedDate = request.CreditReport.GeneratedDate,
+                RecommendedLimit = CalculateRecommendedLimit(request.CreditReport),
+                RiskExplanation = GetRiskExplanation(request.CreditReport.RiskCategory),
+                PaymentHistory = paymentHistory,
+                Debts = request.Student.Debts.Select(d => new CreditReportViewModel.DebtItem
+                {
+                    DebtType = d.DebtType.ToString(),
+                    PrincipalAmount = d.PrincipalAmount,
+                    CurrentBalance = d.CurrentBalance,
+                    InterestRate = d.InterestRate,
+                    DueDate = d.DueDate,
+                    Status = d.Status.ToString()
+                }).ToList()
+            };
+
+            return View(viewModel);
+        }
+
+        private decimal CalculateRecommendedLimit(CreditReport report)
+        {
+            // Simple algorithm - adjust based on your business rules
+            decimal baseLimit = 10000; // Base limit
+            decimal scoreFactor = report.CreditScore / 1000; // Normalize to 0-1 scale
+            decimal debtFactor = 1 - (report.TotalDebtObligations / (report.TotalDebtObligations + 5000));
+
+            return baseLimit * scoreFactor * debtFactor;
+        }
+
+        private string GetRiskExplanation(string riskCategory)
+        {
+            return riskCategory switch
+            {
+                "Low Risk" => "This student has excellent credit history with consistent on-time payments and manageable debt levels.",
+                "Medium Risk" => "This student has generally good credit history but may have some late payments or higher debt levels.",
+                "High Risk" => "This student has significant credit issues including late payments, defaults, or excessive debt levels.",
+                _ => "Risk assessment not available."
+            };
+        }
+
+        
+        private static List<SelectListItem> GetPurposeOptions() => new()
+        {
+            new("Pre-loan Assessment", "pre_loan"),
+            new("Credit Limit Increase", "limit_increase"),
+            new("Periodic Review", "periodic_review")
+        };
+        
     }
 }

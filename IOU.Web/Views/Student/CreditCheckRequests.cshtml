@@ -1,0 +1,72 @@
+﻿@model IEnumerable<CreditReportRequest>
+
+<div class="container">
+    <h2>Credit Check Requests</h2>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Lender</th>
+                            <th>Request Date</th>
+                            <th>Purpose</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in Model)
+                        {
+                            <tr>
+                                <td>@request.Lender.User.FullName</td>
+                                <td>@request.RequestDate.ToString("d")</td>
+                                <td>@request.Purpose</td>
+                                <td>
+                                    @if (!request.ResponseDate.HasValue)
+                                    {
+                                        <span class="badge bg-warning">Pending</span>
+                                    }
+                                    else if (request.IsApproved == true)
+                                    {
+                                        <span class="badge bg-success">Approved</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Denied</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!request.ResponseDate.HasValue)
+                                    {
+                                        <form method="post"
+                                              asp-action="ApproveCreditCheck"
+                                              asp-route-requestId="@request.Id"
+                                              class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                Approve
+                                            </button>
+                                        </form>
+                                        <form method="post"
+                                              asp-action="DenyCreditCheck"
+                                              asp-route-requestId="@request.Id"
+                                              class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                Deny
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (request.IsApproved == true)
+                                    {
+                                        <span class="text-muted">Expires @request.ResponseDate.Value.AddDays(30).ToString("d")</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

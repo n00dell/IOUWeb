@@ -165,8 +165,8 @@
                                     {
                                         <tr>
                                             <td>#@loan.Id</td>
-                                            <td>@loan.Student?.FullName</td> <!-- Assuming Student has a FullName property -->
-                                            <td>@loan.Lender?.FullName</td> <!-- Assuming Lender has a FullName property -->
+                                            <td>@loan.Student?.User?.FullName</td> <!-- Assuming Student has a FullName property -->
+                                            <td>@loan.Lender?.User?.FullName</td> <!-- Assuming Lender has a FullName property -->
                                             <td>@loan.PrincipalAmount.ToString("C")</td>
                                             <td>@loan.CurrentBalance.ToString("C")</td>
                                             <td>@loan.InterestRate.ToString("0.00")%</td>

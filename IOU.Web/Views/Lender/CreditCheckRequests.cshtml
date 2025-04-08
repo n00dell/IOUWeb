@@ -1,0 +1,63 @@
+﻿@model IEnumerable<CreditReportRequest>
+
+<div class="container">
+    <h2>Credit Check Requests</h2>
+    <<div asp-validation-summary="All" class="text-danger"></div>
+    
+    <div class="text-end mb-3">
+        <a asp-action="RequestCreditCheck" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>New Request
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Student Email</th>
+                            <th>Request Date</th>
+                            <th>Purpose</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in Model)
+                        {
+                            <tr>
+                                <td>@request.StudentEmail</td>
+                                <td>@request.RequestDate.ToString("d")</td>
+                                <td>@request.Purpose</td>
+                                <td>
+                                    @if (!request.ResponseDate.HasValue)
+                                    {
+                                        <span class="badge bg-warning">Pending</span>
+                                    }
+                                    else if (request.IsApproved == true)
+                                    {
+                                        <span class="badge bg-success">Approved</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Denied</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (request.IsApproved == true)
+                                    {
+                                        <a asp-action="ViewCreditReport" asp-route-id="@request.Id"
+                                           class="btn btn-sm btn-primary">
+                                            View Report
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

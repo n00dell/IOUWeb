@@ -4,6 +4,7 @@ using IOU.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOU.Web.Migrations
 {
     [DbContext(typeof(IOUWebContext))]
-    partial class IOUWebContextModelSnapshot : ModelSnapshot
+    [Migration("20250407211129_creditreportrequeststd")]
+    partial class creditreportrequeststd
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -148,6 +151,7 @@ namespace IOU.Web.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CreditReportId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<bool?>("IsApproved")
@@ -805,7 +809,9 @@ namespace IOU.Web.Migrations
                 {
                     b.HasOne("IOU.Web.Models.CreditReport", "CreditReport")
                         .WithMany()
-                        .HasForeignKey("CreditReportId");
+                        .HasForeignKey("CreditReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("IOU.Web.Models.Lender", "Lender")
                         .WithMany()
