@@ -27,6 +27,8 @@
         public Dictionary<string, decimal> RepaymentTrends { get; set; }
 
         public List<Debt> ActiveDebts { get; set; }
+        public List<Notification> Notifications { get; set; } = new();
+
 
     }
 }

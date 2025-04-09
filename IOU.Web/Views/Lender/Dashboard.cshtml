@@ -1,4 +1,5 @@
 ﻿@model IOU.Web.Models.ViewModels.LenderDashboardViewModel
+@using IOU.Web.Models
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Lender Dashboard";
@@ -21,7 +22,7 @@
 
             <!-- Quick Actions Card -->
             <div class="card lender-card mb-4">
-                <div class="lender-card__header card-header">
+                <div class="card-header lender-card__header">
                     <h5 class="mb-0">Quick Actions</h5>
                 </div>
                 <div class="card-body">
@@ -30,46 +31,58 @@
                             <i class="fas fa-plus-circle lender-actions__icon"></i>
                             <span>Create New Debt</span>
                         </a>
-                        <a href="@Url.Action("Payments", "Lender")" class="lender-actions__item">
-                            <i class="fas fa-money-bill-wave lender-actions__icon"></i>
-                            <span>View Payments</span>
+                        <a href="@Url.Action("ActiveLoans", "Lender")" class="lender-actions__item">
+                            <i class="fas fa-hand-holding-usd lender-menu__icon"></i>
+                            <span>Active Loans</span>
                         </a>
-                        <a href="@Url.Action("Notifications", "Lender")" class="lender-actions__item">
-                            <i class="fas fa-bell lender-actions__icon"></i>
-                            <span>View Notifications</span>
+                        <a href="@Url.Action("Borrowers", "Lender")" class="lender-actions__item">
+                            <i class="fas fa-users lender-menu__icon"></i>
+                            <span>View Borrowers</span>
                         </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Recent Activities Card -->
+            <!-- Recent Activities -->
             <div class="card lender-card">
-                <div class="lender-card__header card-header">
+                <div class="card-header lender-card__header">
                     <h5 class="mb-0">Recent Activities</h5>
                 </div>
                 <div class="card-body">
                     <div class="lender-activities">
-                        <div class="lender-activities__item">
-                            <i class="fas fa-check-circle text-success lender-activities__icon"></i>
-                            <div class="lender-activities__content">
-                                <p class="lender-activities__text">Payment received from John Doe</p>
-                                <small class="lender-activities__time text-muted">Today, 2:30 PM</small>
-                            </div>
-                        </div>
-                        <div class="lender-activities__item">
-                            <i class="fas fa-file-invoice text-primary lender-activities__icon"></i>
-                            <div class="lender-activities__content">
-                                <p class="lender-activities__text">New debt created for Jane Smith</p>
-                                <small class="lender-activities__time text-muted">Yesterday, 11:20 AM</small>
-                            </div>
-                        </div>
-                        <div class="lender-activities__item">
-                            <i class="fas fa-exclamation-circle text-warning lender-activities__icon"></i>
-                            <div class="lender-activities__content">
-                                <p class="lender-activities__text">Payment overdue notification sent</p>
-                                <small class="lender-activities__time text-muted">2 days ago</small>
-                            </div>
-                        </div>
+                        @if (Model.Notifications.Any())
+                        {
+                            foreach (var notification in Model.Notifications)
+                            {
+                                <div class="lender-activities__item">
+                                    @{
+                                        string icon = "fas fa-info-circle text-muted";
+                                        switch (notification.Type)
+                                        {
+                                            case NotificationType.PaymentReceived:
+                                                icon = "fas fa-check-circle text-success";
+                                                break;
+                                            case NotificationType.DebtCreated:
+                                                icon = "fas fa-file-invoice text-primary";
+                                                break;
+                                            case NotificationType.PaymentOverdue:
+                                                icon = "fas fa-exclamation-circle text-warning";
+                                                break;
+                                        }
+                                    }
+
+                                    <i class="@icon lender-activities__icon"></i>
+                                    <div class="lender-activities__content">
+                                        <p class="lender-activities__text">@notification.Message</p>
+                                        <small class="lender-activities__time text-muted">@notification.CreatedAt.ToString("g")</small>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted">No recent activities.</p>
+                        }
                     </div>
                 </div>
             </div>
@@ -85,8 +98,8 @@
                         @foreach (var debt in Model.ActiveDebts)
                         {
                             <div class="col-md-6 mb-4">
-                                <div class="lender-debt-card">
-                                    <div class="lender-debt-card__header">
+                                <div class="lender-debt-card card">
+                                    <div class="card-header lender-debt-card__header">
                                         <h5 class="mb-0">Loan to @debt.Student.User.FullName</h5>
                                     </div>
                                     <div class="card-body">
@@ -111,8 +124,7 @@
                                             </div>
                                         </div>
                                         <div class="mt-3 text-center">
-                                            <a href="@Url.Action("DebtDetails", "Lender", new { id = debt.Id })"
-                                               class="btn btn-primary">View Details</a>
+                                            <a href="@Url.Action("DebtDetails", "Lender", new { id = debt.Id })" class="btn btn-primary">View Details</a>
                                         </div>
                                     </div>
                                 </div>

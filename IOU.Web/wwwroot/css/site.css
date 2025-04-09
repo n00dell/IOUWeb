@@ -861,6 +861,14 @@ body {
     letter-spacing: 0.5px;
 }
 
+.lender-menu__info {
+    max-width: 150px; /* adjust as needed */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
 .lender-menu__nav {
     padding: 0;
     margin: 0;

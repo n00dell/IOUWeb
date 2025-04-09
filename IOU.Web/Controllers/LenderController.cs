@@ -51,6 +51,11 @@ namespace IOU.Web.Controllers
         public async Task<IActionResult> Dashboard()
         {
             var currentUser = await _userManager.GetUserAsync(User);
+            var notifications = await _notificationService.GetUserNotifications(currentUser.Id, includeRead: true);
+            var latestNotifications = notifications
+                .OrderByDescending(n => n.CreatedAt)
+                .Take(3)
+                .ToList();
             var lender = await _context.Lender
                 .FirstOrDefaultAsync(l => l.UserId == currentUser.Id);
 
@@ -71,7 +76,8 @@ namespace IOU.Web.Controllers
             var viewModel = new LenderDashboardViewModel
             {
                 TotalActiveDebts = debts.Sum(d => d.CurrentBalance),
-                ActiveDebts = debts.OrderByDescending(d => d.DueDate).ToList()
+                ActiveDebts = debts.OrderByDescending(d => d.DueDate).ToList(),
+                Notifications = latestNotifications
             };
 
             return View(viewModel);
@@ -601,7 +607,81 @@ namespace IOU.Web.Controllers
 
             return View(viewModel);
         }
+        [Authorize(Roles = "Lender")]
+        [HttpGet("ActiveLoans")]
+        public async Task<IActionResult> ActiveLoans()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var lender = await _context.Lender.FirstOrDefaultAsync(l => l.UserId == currentUser.Id);
 
+            if (lender == null) return RedirectToAction("Error", "Home");
+
+            var activeDebts = await _context.Debt
+                .Include(d => d.Student)
+                    .ThenInclude(s => s.User)
+                .Include(d => d.ScheduledPayments)
+                .Where(d => d.LenderUserId == lender.UserId &&
+                           (d.Status == DebtStatus.Active || d.Status == DebtStatus.Overdue))
+                .OrderByDescending(d => d.DueDate)
+                .ToListAsync();
+
+            // Update calculations for each debt
+            foreach (var debt in activeDebts)
+            {
+                await _debtService.UpdateDebtCalculations(debt.Id);
+            }
+
+            var viewModel = new ActiveLoansViewModel
+            {
+                ActiveDebts = activeDebts,
+                TotalOutstanding = activeDebts.Sum(d => d.CurrentBalance),
+                TotalExpectedInterest = activeDebts.Sum(d => d.AccumulatedInterest),
+                LoansByType = activeDebts
+                    .GroupBy(d => d.DebtType.ToString())
+                    .ToDictionary(g => g.Key, g => g.Sum(d => d.CurrentBalance))
+            };
+
+            return View(viewModel);
+        }
+
+        [Authorize(Roles = "Lender")]
+        [HttpGet("Borrowers")]
+        public async Task<IActionResult> Borrowers()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var lender = await _context.Lender.FirstOrDefaultAsync(l => l.UserId == currentUser.Id);
+
+            if (lender == null) return RedirectToAction("Error", "Home");
+
+            var borrowers = await _context.Debt
+                .Include(d => d.Student)
+                    .ThenInclude(s => s.User)
+                .Where(d => d.LenderUserId == lender.UserId)
+                .Select(d => d.Student)
+                .Distinct()
+                .ToListAsync();
+
+            // Calculate active loans per borrower
+            var activeLoansByBorrower = await _context.Debt
+                .Where(d => d.LenderUserId == lender.UserId &&
+                           (d.Status == DebtStatus.Active || d.Status == DebtStatus.Overdue))
+                .GroupBy(d => d.Student.User.FullName)
+                .ToDictionaryAsync(g => g.Key, g => g.Count());
+
+            var viewModel = new BorrowersViewModel
+            {
+                Borrowers = borrowers,
+                TotalOwedByBorrower = await _context.Debt
+                    .Where(d => d.LenderUserId == lender.UserId)
+                    .GroupBy(d => d.Student.User.FullName)
+                    .ToDictionaryAsync(
+                        g => g.Key,
+                        g => g.Sum(d => d.CurrentBalance)),
+                ActiveLoansByBorrower = activeLoansByBorrower
+            };
+
+            return View(viewModel);
+        }
         private decimal CalculateRecommendedLimit(CreditReport report)
         {
             // Simple algorithm - adjust based on your business rules

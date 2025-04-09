@@ -34,7 +34,7 @@
             </a>
         </li>
         <li class="lender-menu__item">
-            <a asp-controller="Lender" asp-action="Loans"
+            <a asp-controller="Lender" asp-action="ActiveLoans"
                class="lender-menu__link @(ViewContext.RouteData.Values["Action"].ToString() == "Loans" ? "active" : "")">
                 <i class="fas fa-hand-holding-usd lender-menu__icon"></i>
                 <span>Active Loans</span>

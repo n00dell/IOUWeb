@@ -1,0 +1,72 @@
+﻿@model IOU.Web.Models.ViewModels.BorrowersViewModel
+
+<div class="container">
+    <h2>My Borrowers</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Borrowers</h5>
+                    <p class="card-text display-6">@Model.Borrowers.Count</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Total Outstanding</h5>
+                    <p class="card-text display-6">@Model.TotalOwedByBorrower.Values.Sum().ToString("C")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h4>Borrower Details</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>University</th>
+                            <th>Expected Graduation</th>
+                            <th>Total Owed</th>
+                            <th>Active Loans</th>
+                           
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var borrower in Model.Borrowers)
+                        {
+                            <tr>
+                                <td>@borrower.User.FullName</td>
+                                <td>@borrower.User.Email</td>
+                                <td>@borrower.University</td>
+                                <td>@borrower.ExpectedGraduationDate.ToString("yyyy")</td>
+                                <td>
+                                    @{
+                                        var totalOwed = Model.TotalOwedByBorrower.ContainsKey(borrower.User.FullName)
+                                        ? Model.TotalOwedByBorrower[borrower.User.FullName].ToString("C")
+                                        : "$0.00";
+                                    }
+                                    @totalOwed
+                                </td>
+                                <td>
+                                    @(Model.ActiveLoansByBorrower.ContainsKey(borrower.User.FullName)
+                                        ? Model.ActiveLoansByBorrower[borrower.User.FullName]
+                                        : 0)
+                                </td>
+                               
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

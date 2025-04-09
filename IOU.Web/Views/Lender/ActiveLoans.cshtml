@@ -1,0 +1,122 @@
+﻿@model IOU.Web.Models.ViewModels.ActiveLoansViewModel
+
+<div class="container">
+    <h2>Active Loans</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Outstanding</h5>
+                    <p class="card-text display-6">@Model.TotalOutstanding.ToString("C")</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Expected Interest</h5>
+                    <p class="card-text display-6">@Model.TotalExpectedInterest.ToString("C")</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Active Loans</h5>
+                    <p class="card-text display-6">@Model.ActiveDebts.Count</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Loan Distribution by Type</h4>
+        </div>
+        <div class="card-body">
+            <canvas id="loansByTypeChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h4>Loan Details</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Type</th>
+                            <th>Principal</th>
+                            <th>Balance</th>
+                            <th>Interest</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var debt in Model.ActiveDebts)
+                        {
+                            <tr>
+                                <td>@debt.Student.User.FullName</td>
+                                <td>@debt.DebtType</td>
+                                <td>@debt.PrincipalAmount.ToString("C")</td>
+                                <td>@debt.CurrentBalance.ToString("C")</td>
+                                <td>@debt.AccumulatedInterest.ToString("C")</td>
+                                <td>@debt.DueDate.ToString("d")</td>
+                                <td>
+                                    <span class="badge @(debt.Status == DebtStatus.Overdue ? "bg-danger" : "bg-success")">
+                                        @debt.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <a asp-action="DebtDetails" asp-route-id="@debt.Id" class="btn btn-sm btn-primary">Details</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('loansByTypeChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.LoansByType.Keys)),
+                    datasets: [{
+                        data: @Html.Raw(Json.Serialize(Model.LoansByType.Values)),
+                        backgroundColor: [
+                            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + '$' + context.raw;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}
