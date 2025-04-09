@@ -1,0 +1,137 @@
+﻿@model IOU.Web.Models.ViewModels.PaymentHistoryViewModel
+
+<div class="container">
+    <h2>Payment Transaction History</h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Successful Payments</h5>
+                    <p class="card-text display-6">@Model.TotalPaid.ToString("C")</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Total Attempted</h5>
+                    <p class="card-text display-6">@Model.TotalAttempted.ToString("C")</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Transactions</h5>
+                    <p class="card-text display-6">@Model.PaymentCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Failed Payments</h5>
+                    <p class="card-text display-6">@Model.FailedPayments</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">Payment Activity</h4>
+        </div>
+        <div class="card-body">
+            <canvas id="paymentChart" style="height: 300px;"></canvas>
+        </div>
+    </div>
+
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0">Payment Transactions</h4>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Reference</th>
+                        <th>Phone</th>
+                        <th>Lender</th>
+                        <th>Debt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in Model.PaymentTransactions) 
+                    {
+                        <tr>
+                            <td>@payment.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                            <td>@payment.Amount.ToString("C")</td>
+                            <td>
+                                @switch (payment.Status)
+                                {
+                                    case PaymentTransactionStatus.Paid:
+                                        <span class="badge bg-success">Paid</span>
+                                        break;
+                                    case PaymentTransactionStatus.Failed:
+                                        <span class="badge bg-danger">Failed</span>
+                                        break;
+                                    case PaymentTransactionStatus.Pending:
+                                        <span class="badge bg-warning">Pending</span>
+                                        break;
+                                }
+                            </td>
+                            <td>@(payment.MpesaReceiptNumber ?? payment.CheckoutRequestID ?? "N/A")</td>
+                            <td>@payment.PhoneNumber</td>
+                            <td>@payment.Debt.Lender.User.FullName</td>
+                            <td>@payment.Debt.PrincipalAmount.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('paymentChart').getContext('2d');
+            const labels = @Html.Raw(Json.Serialize(Model.PaymentsByMonth.Keys));
+            const data = @Html.Raw(Json.Serialize(Model.PaymentsByMonth.Values));
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Payment Amounts',
+                        data: data,
+                        backgroundColor: '#4CAF50',
+                        borderColor: '#388E3C',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

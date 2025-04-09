@@ -58,7 +58,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var payment in Model.Payments.Take(5))
+                                @foreach (var payment in Model.PaymentTransactions.Take(5))
                                 {
                                     <tr>
                                         <td>@payment.PaymentDate?.ToShortDateString()</td>

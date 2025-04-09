@@ -181,17 +181,37 @@ namespace IOU.Web.Controllers
         public async Task<IActionResult> PaymentHistory()
         {
             var currentUser = await _userManager.GetUserAsync(User);
-
             if (currentUser == null)
                 return RedirectToAction("Error", "Home");
 
-            var payments = await _context.ScheduledPayment
+            var payments = await _context.Payments
                 .Include(p => p.Debt)
+                    .ThenInclude(d => d.Lender)
+                        .ThenInclude(l => l.User)
+                .Include(p => p.ScheduledPayment)
                 .Where(p => p.Debt.StudentUserId == currentUser.Id)
-                .OrderByDescending(p => p.DueDate)
+                .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
-            return View(payments);
+            var viewModel = new PaymentHistoryViewModel
+            {
+                PaymentTransactions = payments,  // Changed from Payments to PaymentTransactions
+                TotalPaid = payments.Where(p => p.Status == PaymentTransactionStatus.Paid).Sum(p => p.Amount),
+                TotalAttempted = payments.Sum(p => p.Amount),
+                PaymentCount = payments.Count,
+                PaymentsByMonth = payments
+                    .Where(p => p.PaymentDate.HasValue)
+                    .GroupBy(p => new { p.PaymentDate.Value.Year, p.PaymentDate.Value.Month })
+                    .OrderBy(g => g.Key.Year)
+                    .ThenBy(g => g.Key.Month)
+                    .ToDictionary(
+                        g => $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(g.Key.Month)} {g.Key.Year}",
+                        g => g.Sum(p => p.Amount)
+                    ),
+                FailedPayments = payments.Count(p => p.Status == PaymentTransactionStatus.Failed)
+            };
+
+            return View(viewModel);
         }
 
         [Authorize(Roles = "Student")]
@@ -589,27 +609,41 @@ namespace IOU.Web.Controllers
 
         private async Task<PaymentHistoryViewModel> GetPaymentHistory(string userId)
         {
-            var payments = await _context.ScheduledPayment
+            // Get all payment transactions (not scheduled payments)
+            var payments = await _context.Payments
                 .Include(p => p.Debt)
                     .ThenInclude(d => d.Lender)
-                .Where(p => p.Debt.StudentUserId == userId && p.Status == ScheduledPaymentStatus.Paid)
-                .OrderByDescending(p => p.PaymentDate)
+                        .ThenInclude(l => l.User)
+                .Include(p => p.ScheduledPayment)
+                .Where(p => p.Debt.StudentUserId == userId)
+                .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
-            var totalPaid = payments.Sum(p => p.Amount);
+            // Calculate statistics
+            var totalPaid = payments.Where(p => p.Status == PaymentTransactionStatus.Paid).Sum(p => p.Amount);
+            var totalAttempted = payments.Sum(p => p.Amount);
             var paymentCount = payments.Count;
+            var failedPayments = payments.Count(p => p.Status == PaymentTransactionStatus.Failed);
+
+            // Group by month for the chart
+            var paymentsByMonth = payments
+                .Where(p => p.PaymentDate.HasValue)
+                .GroupBy(p => new { p.PaymentDate.Value.Year, p.PaymentDate.Value.Month })
+                .OrderBy(g => g.Key.Year)
+                .ThenBy(g => g.Key.Month)
+                .ToDictionary(
+                    g => $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(g.Key.Month)} {g.Key.Year}",
+                    g => g.Sum(p => p.Amount)
+                );
 
             return new PaymentHistoryViewModel
             {
-                Payments = payments,
+                PaymentTransactions = payments,  // Using the correct property name
                 TotalPaid = totalPaid,
+                TotalAttempted = totalAttempted,
                 PaymentCount = paymentCount,
-                PaymentsByMonth = payments.GroupBy(p => new { p.PaymentDate.Value.Year, p.PaymentDate.Value.Month })
-                                         .OrderBy(g => g.Key.Year)
-                                         .ThenBy(g => g.Key.Month)
-                                         .ToDictionary(
-                                             g => $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(g.Key.Month)} {g.Key.Year}",
-                                             g => g.Sum(p => p.Amount))
+                FailedPayments = failedPayments,
+                PaymentsByMonth = paymentsByMonth
             };
         }
 
