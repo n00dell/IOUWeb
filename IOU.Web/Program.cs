@@ -61,17 +61,34 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IScheduledPaymentService, ScheduledPaymentService>();
 builder.Services.AddScoped<IRazorViewRenderer, RazorViewRenderer>();
 builder.Services.AddScoped<IEmailService, MailJetEmailService>(); // Register IEmailService
-builder.Services.Configure<MpesaConfiguration>(builder.Configuration.GetSection("MpesaConfiguration"));
 builder.Services.AddScoped<IMpesaService, MpesaService>();
 builder.Services.AddScoped<ICreditReportService, CreditReportService>();
 builder.Services.AddSingleton<NgrokService>();
-builder.Services.AddHostedService<NgrokMonitorService>(); // For auto-refresh
+builder.Services.AddHostedService<NgrokMonitorService>();
+builder.Services.Configure<MpesaConfiguration>(
+    builder.Configuration.GetSection("MpesaConfiguration"));
+// In Program.cs, make sure this is correct:
 builder.Services.AddHttpClient("Mpesa", c =>
 {
-    c.BaseAddress = new Uri(builder.Configuration["MpesaConfiguration:BaseUrl"]!);
+    var baseUrl = builder.Configuration["MpesaConfiguration:BaseUrl"];
+    if (!string.IsNullOrEmpty(baseUrl))
+    {
+        c.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    }
     c.DefaultRequestHeaders.Accept.Add(
         new MediaTypeWithQualityHeaderValue("application/json"));
 });
+// In Program.cs
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowWebApp", policy =>
+    {
+        policy.WithOrigins("https://your-frontend-url.com")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 
 
 // Add Razor runtime compilation
@@ -80,7 +97,7 @@ builder.Services.AddMvc().AddRazorRuntimeCompilation();
 
 
 var app = builder.Build();
-
+app.UseCors("AllowWebApp");
 // Seed Roles
 using (var scope = app.Services.CreateScope())
 {

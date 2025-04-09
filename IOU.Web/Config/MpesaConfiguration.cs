@@ -7,7 +7,7 @@
         public required string BaseUrl { get; set; }
         public required string LipaNaMpesaOnlinePassKey { get; set; }
         
-        public required int BusinessShortCode { get; set; }
+        public required string BusinessShortCode { get; set; }
         public required string CallbackUrl { get; set; }
         public bool UseNgrok { get; set; } = false;
         public string? NgrokUrl { get; set; }

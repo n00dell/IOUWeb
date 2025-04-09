@@ -1,177 +1,97 @@
-﻿using IOU.Web.Config;
+﻿// Simplified MpesaService.cs
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
+using IOU.Web.Config;
+using IOU.Web.Models;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using System.Text;
-using IOU.Web.Data;
-using System.Net.Http.Headers;
 using IOU.Web.Services.Interfaces;
 using static IOU.Web.Models.MpesaModels;
-using System.Security.Cryptography;
 
 namespace IOU.Web.Services
 {
+    
+
     public class MpesaService : IMpesaService
     {
-        
         private readonly MpesaConfiguration _config;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<MpesaService> _logger;
         private string _accessToken;
         private DateTime _tokenExpiry;
-        private readonly IWebHostEnvironment _environment;
-        private readonly NgrokService _ngrokService;
-        private string _currentCallbackUrl;
+
         public MpesaService(
             IOptions<MpesaConfiguration> config,
             IHttpClientFactory httpClientFactory,
-            ILogger<MpesaService> logger,
-            IWebHostEnvironment environment,
-            NgrokService ngrokService)
+            ILogger<MpesaService> logger)
         {
             _config = config.Value;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
-            _environment = environment;
-            _ngrokService = ngrokService;
-            _ngrokService.UrlChanged += (sender, newUrl) =>
-            {
-                _currentCallbackUrl = $"{newUrl}/api/mpesa/callback";
-                _logger.LogInformation("Ngrok URL updated to: {Url}", _currentCallbackUrl);
-            };
         }
 
-        public async Task<string> GetAuthTokenAsync()
-        {
-            if (!string.IsNullOrEmpty(_accessToken) && DateTime.UtcNow < _tokenExpiry)
-                return _accessToken;
-
-            var client = _httpClientFactory.CreateClient();
-            var authString = Convert.ToBase64String(Encoding.UTF8.GetBytes(
-                $"{_config.ConsumerKey}:{_config.ConsumerSecret}"));
-
-            var response = await client.SendAsync(new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri($"{_config.BaseUrl}/oauth/v1/generate?grant_type=client_credentials"),
-                Headers = { Authorization = new AuthenticationHeaderValue("Basic", authString) }
-            });
-
-            var content = await response.Content.ReadAsStringAsync();
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"Auth failed: {content}");
-
-            var tokenResponse = JsonConvert.DeserializeObject<dynamic>(content);
-            _accessToken = tokenResponse.access_token;
-            _tokenExpiry = DateTime.UtcNow.AddSeconds(Convert.ToDouble(tokenResponse.expires_in) - 60);
-
-            return _accessToken;
-        }
-        public async Task<MpesaResponse> InitiateStkPushAsync(PaymentRequest request)
+        public async Task<MpesaInitiateResponse> InitiateStkPushAsync(PaymentRequest request)
         {
             var client = _httpClientFactory.CreateClient("Mpesa");
+
+            _logger.LogInformation("MPesa Configuration: {Config}", JsonConvert.SerializeObject(_config));
+            _logger.LogInformation("Base address: {BaseAddress}", client.BaseAddress);
+
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", await GetAuthTokenAsync());
 
-            var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
-            var password = Convert.ToBase64String(Encoding.UTF8.GetBytes(
-                $"{_config.BusinessShortCode}{_config.LipaNaMpesaOnlinePassKey}{timestamp}"));
+            var callbackUrl = _config.UseNgrok && !string.IsNullOrEmpty(_config.NgrokUrl)
+                 ? $"{_config.NgrokUrl.TrimEnd('/')}/api/payment/callback"
+                 : _config.CallbackUrl;
 
-            _logger.LogInformation("Initiating STK Push: {PhoneNumber}, Amount: {Amount}, Timestamp: {Timestamp}",
-                request.PhoneNumber, request.Amount, timestamp);
-            _logger.LogInformation("Password: {Password}", password);
-            _logger.LogInformation("Callback URL: {CallbackUrl}", GetCallbackUrl());
-            _logger.LogInformation("Business Short Code: {BusinessShortCode}",
-                _config.BusinessShortCode.ToString("D6"));
+            _logger.LogInformation("Using callback URL: {CallbackUrl}", callbackUrl);
+
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var password = GenerateStkPassword(timestamp);
+
+            var businessShortCode = _config.BusinessShortCode.Trim();
+
+            var phoneNumber = FormatPhoneNumber(request.PhoneNumber);
+
+            // Log the values we're about to send for debugging
+            _logger.LogInformation("STK Push Request: BusinessShortCode={ShortCode}, Phone={Phone}, Amount={Amount}",
+                businessShortCode, phoneNumber, request.Amount);
 
             var stkRequest = new
             {
-                BusinessShortCode = _config.BusinessShortCode,
+                BusinessShortCode = businessShortCode,
                 Password = password,
                 Timestamp = timestamp,
                 TransactionType = "CustomerPayBillOnline",
-                Amount = Math.Ceiling(request.Amount).ToString("0"),
-                PartyA = FormatPhoneNumber(request.PhoneNumber),
-                PartyB = _config.BusinessShortCode,
-                PhoneNumber = FormatPhoneNumber(request.PhoneNumber),
-                CallBackURL = GetCallbackUrl(),
-                AccountReference = "IOU-Debt",
+                Amount = (int)(request.Amount * 1), // MPesa might expect whole numbers
+                PartyA = phoneNumber,
+                PartyB = businessShortCode,
+                PhoneNumber = phoneNumber, // Use the same formatted phone number
+                CallBackURL = callbackUrl,
+                AccountReference = $"IOU-Debt-{request.DebtId}",
                 TransactionDesc = $"Debt {request.DebtId}"
             };
 
-            var response = await client.PostAsJsonAsync(
-                "mpesa/stkpush/v1/processrequest", stkRequest);
+            var requestUrl = $"mpesa/stkpush/v1/processrequest";
+            _logger.LogInformation("Request URL: {RequestUrl}", requestUrl);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("MPesa API Error: {StatusCode} - {Content}",
-                    response.StatusCode, errorContent);
-                throw new Exception($"MPesa request failed: {errorContent}");
-            }
+            // Log the full request body for debugging
+            var requestJson = JsonConvert.SerializeObject(stkRequest);
+            _logger.LogInformation("Request Body: {RequestBody}", requestJson);
 
-            var content = await response.Content.ReadAsStringAsync();
-            var result = JsonConvert.DeserializeObject<MpesaResponse>(content);
+            // Create proper content
+            var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
-            if (result == null || string.IsNullOrEmpty(result.CheckoutRequestID))
-            {
-                throw new Exception("Invalid MPesa response format");
-            }
+            var response = await client.PostAsync(requestUrl, content);
 
-            return result;
-        }
-        private async Task<T> HandleMpesaResponse<T>(HttpResponseMessage response)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError($"MPesa API Error: {content}");
-                throw new Exception($"MPesa request failed: {response.StatusCode}");
-            }
-
-            var result = JsonConvert.DeserializeObject<T>(content);
-            if (result == null) throw new Exception("Failed to parse MPesa response");
-
-            return result;
-        }
-        private string FormatPhoneNumber(string phone)
-        {
-            var digits = new string(phone.Where(char.IsDigit).ToArray());
-            return digits.StartsWith("254") ? digits : "254" + digits[^9..];
+            return await HandleMpesaResponse<MpesaInitiateResponse>(response);
         }
 
-        private string GetCallbackUrl()
-        {
-            // If using Ngrok in development, get the current URL from NgrokService
-            if (_config.UseNgrok && _environment.IsDevelopment())
-            {
-                var ngrokUrl = _ngrokService.PublicUrl?.TrimEnd('/');
-                if (!string.IsNullOrEmpty(ngrokUrl))
-                {
-                    return $"{ngrokUrl}/api/mpesa/callback";
-                }
-            }
-
-            // Fall back to configured URL
-            return _config.CallbackUrl;
-        }
-
-        public async Task<bool> VerifyCallbackSignature(HttpRequest request)
+        public async Task<bool> VerifyCallbackSignature(string signature, string body)
         {
             try
             {
-                var signature = request.Headers["Signature"].FirstOrDefault();
-                if (string.IsNullOrEmpty(signature))
-                {
-                    _logger.LogWarning("Missing signature header");
-                    return false;
-                }
-
-                request.Body.Position = 0;
-                using var reader = new StreamReader(request.Body);
-                var body = await reader.ReadToEndAsync();
-                request.Body.Position = 0;
-
                 using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_config.LipaNaMpesaOnlinePassKey));
                 var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(body));
                 var computedSignature = Convert.ToBase64String(hash);
@@ -180,9 +100,94 @@ namespace IOU.Web.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Signature verification failed");
+                _logger.LogError(ex, "MPesa signature verification failed");
                 return false;
             }
         }
+
+        private async Task<string> GetAuthTokenAsync()
+        {
+            if (!string.IsNullOrEmpty(_accessToken) && DateTime.UtcNow < _tokenExpiry)
+                return _accessToken;
+
+            // Use a new HttpClient just for auth to avoid any conflicts
+            using var client = new HttpClient();
+
+            // Set the base address for this specific client
+            client.BaseAddress = new Uri(_config.BaseUrl);
+
+            var authString = Convert.ToBase64String(Encoding.UTF8.GetBytes(
+                $"{_config.ConsumerKey}:{_config.ConsumerSecret}"));
+
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Basic", authString);
+
+            // Now use a relative path since BaseAddress is set
+            var response = await client.GetAsync("/oauth/v1/generate?grant_type=client_credentials");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Auth failed: {response.StatusCode} - {errorContent}");
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var tokenResponse = JsonConvert.DeserializeObject<MpesaToken>(content);
+
+            _accessToken = tokenResponse.AccessToken;
+            _tokenExpiry = DateTime.UtcNow.AddSeconds(Convert.ToInt32(tokenResponse.ExpiresIn) - 60);
+
+            return _accessToken;
+        }
+
+        private string GenerateStkPassword(string timestamp)
+        {
+            
+            var data = $"{_config.BusinessShortCode.Trim()}{_config.LipaNaMpesaOnlinePassKey.Trim()}{timestamp}";
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
+        }
+
+        private string FormatPhoneNumber(string phone)
+        {
+            var digits = new string(phone.Where(char.IsDigit).ToArray());
+            return digits.StartsWith("254") ? digits : $"254{digits.TakeLast(9).ToArray()}";
+        }
+
+        private async Task<T> HandleMpesaResponse<T>(HttpResponseMessage response)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("MPesa API Error: {StatusCode} - {Content}",
+                    response.StatusCode, content);
+                try
+                {
+                    var errorObj = JsonConvert.DeserializeObject<dynamic>(content);
+                    var errorMessage = errorObj?.errorMessage?.ToString() ?? "Unknown error";
+                    throw new MpesaException($"MPesa API Error: {response.StatusCode} - {errorMessage}");
+                }
+                catch (Exception)
+                {
+                    // Fall back to generic error if parsing fails
+                    throw new MpesaException($"MPesa API Error: {response.StatusCode}");
+                }
+            }
+
+            try
+            {
+                return JsonConvert.DeserializeObject<T>(content);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize MPesa response");
+                throw new MpesaException("Invalid MPesa response format");
+            }
+        }
+    }
+
+    public class MpesaException : Exception
+    {
+        public MpesaException(string message) : base(message) { }
     }
 }

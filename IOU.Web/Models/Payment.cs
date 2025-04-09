@@ -25,7 +25,7 @@ public class Payment
 
     [Required]
     [StringLength(50)]
-    public string CheckoutRequestID { get; set; }
+    public string? CheckoutRequestID { get; set; }
 
     [StringLength(20)]
     public string? MpesaReceiptNumber { get; set; }

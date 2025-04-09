@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using IOU.Web.Config;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 
 namespace IOU.Web.Services
 {
@@ -6,11 +8,15 @@ namespace IOU.Web.Services
     {
         private readonly IHttpClientFactory _httpClientFactory;
         public event EventHandler<string> UrlChanged;
+        private readonly IOptions<MpesaConfiguration> _mpesaConfig;
+        private readonly ILogger<NgrokService> _logger;
         public string _publicUrl { get; private set; }
 
-        public NgrokService(IHttpClientFactory httpClientFactory)
+        public NgrokService(IHttpClientFactory httpClientFactory, IOptions<MpesaConfiguration> mpesaConfig, ILogger<NgrokService> logger)
         {
             _httpClientFactory = httpClientFactory;
+            _mpesaConfig = mpesaConfig;
+            _logger = logger;
             RefreshUrl().Wait(); // Initial fetch
         }
 
@@ -22,6 +28,12 @@ namespace IOU.Web.Services
                 if (_publicUrl != value)
                 {
                     _publicUrl = value;
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        // Update configuration directly
+                        _mpesaConfig.Value.NgrokUrl = value;
+                        _logger.LogInformation($"Updated Ngrok URL to: {value}");
+                    }
                     UrlChanged?.Invoke(this, value);
                 }
             }

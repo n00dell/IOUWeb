@@ -40,7 +40,7 @@ namespace IOU.Web.Data
             modelBuilder.Entity<Payment>(entity =>
             {
                 // Proper indexing
-                entity.HasIndex(p => p.CheckoutRequestID).IsUnique();
+                entity.HasIndex(p => p.CheckoutRequestID).IsUnique().HasFilter("[CheckoutRequestID] IS NOT NULL");
                 entity.HasIndex(p => new { p.Status, p.UpdatedAt });
 
                 entity.Property(p => p.UpdatedAt)

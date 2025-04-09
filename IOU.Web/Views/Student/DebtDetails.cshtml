@@ -152,14 +152,13 @@
         </div>
     </div>
 
-    <!-- Full Payment Schedule -->
+    <!-- Full Payment Schedule Table -->
     <div class="student-card">
         <div class="student-card__header p-3">
             <h5 class="mb-0 text-white">Full Payment Schedule</h5>
         </div>
         <div class="p-3">
             <div class="table-responsive">
-                <!-- In your payment schedule table -->
                 <table class="table table-hover">
                     <thead>
                         <tr>
@@ -188,7 +187,7 @@
                                                 data-bs-target="#payModal"
                                                 data-payment-id="@payment.Id"
                                                 data-amount="@payment.Amount">
-                                            Pay
+                                            Pay Installment
                                         </button>
                                     }
                                 </td>
@@ -201,28 +200,37 @@
     </div>
 </div>
 
-<!-- Pay Modal -->
+
+<!-- Payment Modal -->
 <div class="modal fade" id="payModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Make Payment</h5>
+                <h5 class="modal-title">Make M-Pesa Payment</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <input type="hidden" id="scheduledPaymentId" />
             <div class="modal-body">
                 <form id="mpesaPaymentForm">
                     @Html.AntiForgeryToken()
                     <input type="hidden" id="debtId" value="@Model.Debt.Id" />
                     <div class="mb-3">
-                        <label for="amount">Amount</label>
-                        <input type="number" class="form-control" id="amount" required />
+                        <label for="amount" class="form-label">Amount (KES)</label>
+                        <input type="number" class="form-control" id="amount"
+                               min="1" step="1" required />
+                        <div class="invalid-feedback">Minimum payment is KES 1</div>
                     </div>
                     <div class="mb-3">
-                        <label for="phone">Phone Number</label>
-                        <input type="tel" class="form-control" id="phone" required
-                               pattern="^(\+?254|0)?[7][0-9]{8}$" />
+                        <label for="phone" class="form-label">M-Pesa Number</label>
+                        <input type="tel" class="form-control" id="phone"
+                               pattern="^(?:254|\+?254|0)?7[0-9]{8}$"
+                               placeholder="2547XXXXXXXX" required />
+                        <div class="invalid-feedback">Valid M-Pesa number required</div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <span class="submit-text">Initiate Payment</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
                 </form>
             </div>
         </div>
@@ -231,18 +239,226 @@
 
 @section Scripts {
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Handle pay button clicks for specific payments
-            $(document).on('click', '[data-bs-target="#payModal"]', function() {
-                const paymentId = $(this).data('payment-id');
-                const amount = parseFloat($(this).data('amount'));
+                class PaymentManager {
+            constructor() {
+                this.form = document.getElementById('mpesaPaymentForm');
+                if (!this.form) return;
 
-                $('#debtId').val('@Model.Debt.Id'); // Use the debt ID from model
-                $('#amount').val(amount.toFixed(2));
+                this.handleSubmit = this.handleSubmit.bind(this);
+                this.startPolling = this.startPolling.bind(this);
+                this.pollStatus = this.pollStatus.bind(this);
+
+                // Elements
+                this.amountInput = document.getElementById('amount');
+                this.phoneInput = document.getElementById('phone');
+                this.debtIdInput = document.getElementById('debtId');
+                this.scheduledPaymentIdInput = document.getElementById('scheduledPaymentId'); // New
+                this.submitButton = this.form.querySelector('button[type="submit"]');
+
+                // State
+                this.polling = {
+                    active: false,
+                    attempts: 0,
+                    maxAttempts: 25,
+                    baseDelay: 3000
+                };
+
+                // Event listeners
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                this.form.addEventListener('submit', this.handleSubmit.bind(this));
+                this.amountInput?.addEventListener('input', this.validateAmount.bind(this));
+                this.phoneInput?.addEventListener('input', this.validatePhone.bind(this));
+            }
+
+            // Enhanced validation with installment context
+            validateAmount() {
+                const enteredAmount = parseFloat(this.amountInput.value);
+                const installmentAmount = parseFloat(this.amountInput.dataset.originalAmount || Infinity);
+
+                const valid = enteredAmount >= 1 && enteredAmount <= installmentAmount;
+                this.amountInput.classList.toggle('is-invalid', !valid);
+
+                if (enteredAmount > installmentAmount) {
+                    this.amountInput.setCustomValidity(`Cannot pay more than ${installmentAmount.toFixed(2)}`);
+                } else {
+                    this.amountInput.setCustomValidity('');
+                }
+
+                return valid;
+            }
+
+            validatePhone() {
+                const pattern = /^(?:254|\+?254|0)?7\d{8}$/;
+                const valid = pattern.test(this.phoneInput.value);
+                this.phoneInput.classList.toggle('is-invalid', !valid);
+                return valid;
+            }
+                startPolling(checkoutRequestId) {
+            this.polling.active = true;
+            this.polling.attempts = 0;
+            this.pollStatus(checkoutRequestId);
+        }
+
+            async handleSubmit(event) {
+                event.preventDefault();
+                if (!this.validateForm()) return;
+
+                try {
+            this.toggleLoading(true);
+            const response = await this.initiatePayment();
+
+            this.showInfo(`Payment request sent. Check your phone to complete payment`);
+
+            // Use bound method reference
+            setTimeout(() => this.startPolling(response.checkoutRequestId), 5000);
+        } catch (error) {
+            this.showError(error.message);
+            this.toggleLoading(false);
+        }
+            }
+
+            validateForm() {
+                const isValid = this.validateAmount() && this.validatePhone();
+                if (!isValid) this.showError('Please correct the highlighted fields');
+                return isValid;
+            }
+
+            async initiatePayment() {
+                const formData = {
+                    debtId: this.debtIdInput.value,
+                    scheduledPaymentId: this.scheduledPaymentIdInput.value || null, // Include scheduled payment
+                    amount: parseFloat(this.amountInput.value),
+                    phoneNumber: this.formatPhone(this.phoneInput.value)
+                };
+
+                try {
+                    const response = await fetch('/api/payment/initiate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('[name="__RequestVerificationToken"]').value
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.Message || 'Payment initiation failed');
+
+                    return data;
+                } catch (error) {
+                    throw new Error(`Payment failed to start: ${error.message}`);
+                }
+            }
+
+            // Enhanced polling with error state handling
+            async pollStatus(checkoutRequestId) {
+                if (!this.polling.active || this.polling.attempts >= this.polling.maxAttempts) {
+                    this.toggleLoading(false);
+                    this.showInfo("Payment confirmation delayed. Refresh page later to verify.");
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/payment/status/${checkoutRequestId}`);
+                    const status = await response.json();
+
+                    if (!response.ok) throw new Error(status.Message || 'Status check failed');
+
+                    if (status.confirmed) {
+                        this.handleSuccess(status);
+                    } else if (status.status === 'Failed') {
+                        throw new Error('Payment failed on mobile device');
+                    } else {
+                        this.polling.attempts++;
+                        setTimeout(() => this.pollStatus(checkoutRequestId), this.getNextDelay());
+                    }
+                } catch (error) {
+                    this.showError(error.message);
+                    this.toggleLoading(false);
+                }
+            }
+
+            // Modified success handler for installment context
+            handleSuccess(status) {
+                this.showSuccess(`
+                    Payment of KES ${status.amount} confirmed!
+                    ${status.receipt ? `Receipt: ${status.receipt}` : ''}
+                `);
+
+                // Refresh or update UI
+                if (this.scheduledPaymentIdInput.value) {
+                    // Update specific installment UI if needed
+                    document.querySelector(`[data-payment-id="${this.scheduledPaymentIdInput.value}"]`)
+                        ?.closest('tr').classList.add('table-success');
+                }
+
+                setTimeout(() => window.location.reload(), 3000);
+            }
+
+            // Utility methods
+            formatPhone(phone) {
+                return phone.replace(/^0/, '254').replace(/\D/g, '');
+            }
+
+            toggleLoading(loading) {
+                this.submitButton.disabled = loading;
+                this.submitButton.querySelector('.submit-text').classList.toggle('d-none', loading);
+                this.submitButton.querySelector('.spinner-border').classList.toggle('d-none', !loading);
+            }
+
+            getNextDelay() {
+                return Math.min(this.polling.baseDelay * Math.pow(1.5, this.polling.attempts), 30000);
+            }
+
+            showToast(type, message) {
+                const toast = new bootstrap.Toast(document.createElement('div'), {
+                    autohide: true,
+                    delay: 5000
+                });
+
+                toast._element.className = `toast align-items-center text-white bg-${type} border-0`;
+                toast._element.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>`;
+
+                document.getElementById('toastContainer').appendChild(toast._element);
+                toast.show();
+            }
+
+            showError(message) { this.showToast('danger', message); }
+            showSuccess(message) { this.showToast('success', message); }
+            showInfo(message) { this.showToast('info', message); }
+        }
+
+        // Modal initialization with installment binding
+        document.addEventListener('DOMContentLoaded', () => {
+            const payModal = document.getElementById('payModal');
+            let paymentManager;
+
+            payModal?.addEventListener('show.bs.modal', event => {
+                const button = event.relatedTarget;
+                paymentManager = new PaymentManager();
+
+                // Set installment context
+                if (button.dataset.paymentId) {
+                    document.getElementById('scheduledPaymentId').value = button.dataset.paymentId;
+                    document.getElementById('amount').dataset.originalAmount = button.dataset.amount;
+                    document.getElementById('amount').value = parseFloat(button.dataset.amount).toFixed(2);
+                }
             });
 
-            // Initialize payment manager
-            new PaymentManager();
+            payModal?.addEventListener('hidden.bs.modal', () => {
+                if (paymentManager) {
+                    paymentManager.polling.active = false;
+                    document.getElementById('scheduledPaymentId').value = '';
+                    document.getElementById('amount').removeAttribute('data-original-amount');
+                }
+            });
         });
     </script>
 }
